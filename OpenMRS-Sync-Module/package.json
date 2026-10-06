@@ -1,0 +1,28 @@
+{
+    "name": "openmrs-pharmacy-sync",
+    "version": "1.0.0",
+    "description": "OpenMRS Sync Module - Bi-directional sync between OpenMRS and Pharmacy Sync Server",
+    "main": "openmrs-sync-manager.js",
+    "scripts": {
+        "start": "node openmrs-sync-manager.js",
+        "dev": "nodemon openmrs-sync-manager.js",
+        "test": "jest"
+    },
+    "keywords": [
+        "openmrs",
+        "pharmacy",
+        "sync",
+        "healthcare"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "axios": "^1.6.0",
+        "dotenv": "^16.3.1",
+        "winston": "^3.11.0"
+    },
+    "devDependencies": {
+        "jest": "^29.7.0",
+        "nodemon": "^3.0.2"
+    }
+}

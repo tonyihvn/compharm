@@ -1,0 +1,2764 @@
+{
+  "name": "Combined Pharmacy Order Form",
+  "uuid": "4a238dc4-a76b-4c0f-a100-229d98fd5758",
+  "processor": "EncounterFormProcessor",
+  "pages": [
+    {
+      "label": "Treatment Information",
+      "sections": [
+        {
+          "label": "Purpose of Prescription",
+          "questions": [
+            {
+              "label": "Visit Date",
+              "id": "visitDate",
+              "type": "encounterDatetime",
+              "required": true,
+              "questionOptions": {
+                "rendering": "date"
+              },
+              "validators": [
+                {
+                  "type": "date",
+                  "allowFutureDates": "false"
+                }
+              ],
+              "datePickerFormat": "calendar"
+            },
+            {
+              "label": "Weight",
+              "type": "control",
+              "hideSteppers": true,
+              "id": "latestWeight",
+              "questionOptions": {
+                "rendering": "number",
+                "calculate": {
+                  "calculateExpression": "resolve(api.getLatestObs(patient.id, '5089AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')).then(obs => obs?.valueQuantity?.value ?? null)"
+                }
+              },
+              "readonly": true
+            },
+            {
+              "label": "Height",
+              "type": "control",
+              "hideSteppers": true,
+              "id": "latestHeight",
+              "questionOptions": {
+                "rendering": "number",
+                "calculate": {
+                  "calculateExpression": "resolve(api.getLatestObs(patient.id, '5090AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')).then(obs => obs?.valueQuantity?.value ?? null)"
+                }
+              },
+              "readonly": true
+            },
+            {
+              "label": "Purpose of Prescription",
+              "type": "obs",
+              "required": true,
+              "id": "Treatment_type",
+              "validators": [],
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "b970bed0-dc6c-4334-a9a4-c0488b0f8c76",
+                "answers": [
+                  {
+                    "concept": "9b49eb5e-9ca9-4494-a2ff-f1d62b6feecc",
+                    "label": "ART"
+                  },
+                  {
+                    "concept": "0df2d48c-9713-4b89-853d-93507f0d7e21",
+                    "label": "Non-ART"
+                  },
+                  {
+                    "concept": "09f8cb22-ed52-4d3d-910d-7bf6ec7c90d0",
+                    "label": "Occup PEP"
+                  },
+                  {
+                    "concept": "7724ab9d-75ed-4abb-8a3f-7dc5974dad12",
+                    "label": "Non-Occup PEP"
+                  },
+                  {
+                    "concept": "fa2f68b3-a9f2-4a00-82f4-901a477d72a8",
+                    "label": "HIV-Exposed Infant"
+                  },
+                  {
+                    "concept": "5f21852c-a440-40b9-b265-0e0ef417306e",
+                    "label": "PrEP"
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Visit Type",
+              "type": "obs",
+              "id": "visit_type_pharm",
+              "validators": [],
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "164181AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "answers": [
+                  {
+                    "concept": "164180AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Initial Visit"
+                  },
+                  {
+                    "concept": "160530AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Follow-up Visit"
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Pregnant",
+              "type": "obs",
+              "required": "false",
+              "id": "Pregnancy_Status",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "371d4d90-a9ae-4269-9c26-678eb6d1454b",
+                "answers": [
+                  {
+                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Yes"
+                  },
+                  {
+                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "No"
+                  }
+                ]
+              },
+              "hide": {
+                "hideWhenExpression": "sex !== 'F'"
+              }
+            },
+            {
+              "type": "obs",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "0bba8191-cc88-43d9-bcdf-65a7d1a3e013",
+                "answers": [
+                  {
+                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Yes"
+                  },
+                  {
+                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "No"
+                  }
+                ]
+              },
+              "id": "refill",
+              "label": "Refill"
+            },
+            {
+              "label": "Substitution/Switch",
+              "type": "obs",
+              "id": "pick_up_reason_pharm",
+              "validators": [],
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "5d16ec0d-6e7b-4c64-82b5-cd1f1bc97416",
+                "answers": [
+                  {
+                    "concept": "94633cf0-72ed-40b6-9444-df4059dab5aa",
+                    "label": "Substitution"
+                  },
+                  {
+                    "concept": "01d08eb7-e6c8-4455-8546-ad03e8d1fe37",
+                    "label": "Switch"
+                  }
+                ]
+              },
+              "hide": {
+                "hideWhenExpression": "isEmpty(refill) || refill !=='1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+              }
+            },
+            {
+              "label": "DSD Model",
+              "type": "obs",
+              "id": "Dispensing_Modality",
+              "required": false,
+              "validators": [],
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "ac14e589-f635-4d7a-b99e-d9cf2b37842d",
+                "answers": [
+                  {
+                    "concept": "60882cd1-1f42-485b-8afb-cd988282251e",
+                    "label": "Facility-Based"
+                  },
+                  {
+                    "concept": "01fe63b3-b308-4065-aa42-69d3fc57f3dc",
+                    "label": "Community-Based"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Enhanced Adherence Counselling",
+      "hide": {
+        "hideWhenExpression": "isEmpty(viralLoadValue) || viralLoadValue <= 50"
+      },
+      "sections": [
+        {
+          "label": "(Only to be used for clients with Viral Load >50 copies per ml)",
+          "questions": [
+            {
+              "label": "Viral Load (copies/ml)",
+              "type": "control",
+              "hideSteppers": true,
+              "id": "viralLoadValue",
+              "questionOptions": {
+                "rendering": "number",
+                "calculate": {
+                  "calculateExpression": "resolve(api.getLatestObs(patient.id, '856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')).then(obs => obs?.valueQuantity?.value ?? null)"
+                }
+              },
+              "readonly": true
+            },
+            {
+              "label": "Viral Load Date",
+              "type": "control",
+              "id": "viralLoadDate",
+              "questionOptions": {
+                "rendering": "date",
+                "calculate": {
+                  "calculateExpression": "resolve(api.getLatestObs(patient.id, '856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')).then(obs => obs?.effectiveDateTime ? new Date(obs.effectiveDateTime) : null)"
+                }
+              },
+              "readonly": true
+            },
+            {
+              "label": "EAC",
+              "type": "obs",
+              "required": false,
+              "id": "eacSessions",
+              "questionOptions": {
+                "rendering": "radio",
+                "concept": "917827e3-aea2-400d-92e1-8e216ffcdb6b",
+                "answers": [
+                  {
+                    "concept": "d86c1190-a696-4dee-bf5b-4050bb9f0b45",
+                    "label": "1st EAC"
+                  },
+                  {
+                    "concept": "16025496-beda-4062-a297-6e8d4767f95e",
+                    "label": "2nd EAC"
+                  },
+                  {
+                    "concept": "eaafa1a7-8577-4dc6-b863-57558cdcafcf",
+                    "label": "3rd EAC"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "1. ARV Medication",
+      "sections": [
+        {
+          "label": "ARV Medication",
+          "questions": [
+            {
+              "label": "Latest Weight",
+              "type": "control",
+              "id": "latest_weight",
+              "questionOptions": {
+                "rendering": "text",
+                "calculate": {
+                  "calculateExpression": "resolve(api.getLatestObs(patient.id, '5089AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')).then(obs => obs?.valueQuantity?.value ?? '')"
+                }
+              },
+              "hide": {
+                "hideWhenExpression": "true"
+              }
+            },
+            {
+              "label": "Treatment Age Group",
+              "type": "obs",
+              "id": "Treatment_age_group",
+              "validators": [
+                {
+                  "type": "js_expression",
+                  "failsWhenExpression": "Treatment_type === '9b49eb5e-9ca9-4494-a2ff-f1d62b6feecc' && isEmpty(myValue)",
+                  "message": "This field is required for ART"
+                }
+              ],
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "718864d2-dd9b-4210-80fe-21e6f8dcbb14",
+                "answers": [
+                  {
+                    "concept": "1528AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Child",
+                    "hide": {
+                      "hideWhenExpression": "age > 14 || (!isEmpty(latest_weight) && Number(latest_weight) > 24)"
+                    }
+                  },
+                  {
+                    "concept": "a291af62-d00e-4ace-a672-f6f965b325fe",
+                    "label": "Adult",
+                    "hide": {
+                      "hideWhenExpression": "age <= 14 && (isEmpty(latest_weight) || Number(latest_weight) <= 24)"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Regimen Line",
+              "type": "obs",
+              "id": "regimen_line",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "91bf2c14-1677-4c7f-be1b-99a2b64231b4",
+                "answers": [
+                  {
+                    "concept": "164506AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "First Line",
+                    "hide": {
+                      "hideWhenExpression": "Treatment_age_group !== 'a291af62-d00e-4ace-a672-f6f965b325fe'"
+                    }
+                  },
+                  {
+                    "concept": "164513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Second Line",
+                    "hide": {
+                      "hideWhenExpression": "Treatment_age_group !== 'a291af62-d00e-4ace-a672-f6f965b325fe'"
+                    }
+                  },
+                  {
+                    "concept": "73fbac92-4663-43c1-ad89-5fe0bc2e52c7",
+                    "label": "Salvage",
+                    "hide": {
+                      "hideWhenExpression": "Treatment_age_group !== 'a291af62-d00e-4ace-a672-f6f965b325fe'"
+                    }
+                  },
+                  {
+                    "concept": "164507AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Child First Line",
+                    "hide": {
+                      "hideWhenExpression": "Treatment_age_group !== '1528AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+                    }
+                  },
+                  {
+                    "concept": "164514AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Child Second Line",
+                    "hide": {
+                      "hideWhenExpression": "Treatment_age_group !== '1528AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+                    }
+                  },
+                  {
+                    "concept": "032e80e0-ed50-4e88-8ce3-7a2dfa40d0ae",
+                    "label": "Child Salvage",
+                    "hide": {
+                      "hideWhenExpression": "Treatment_age_group !== '1528AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+                    }
+                  }
+                ]
+              },
+              "hide": {
+                "hideWhenExpression": "isEmpty(Treatment_age_group)"
+              }
+            },
+            {
+              "label": "Adult 1st Line Regimens (Choose if adult age group)",
+              "type": "obs",
+              "defaultDisplay": "hide",
+              "id": "Adult_1st_Line_Regimens",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "164506AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "answers": [
+                  {
+                    "concept": "817AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "ABC-3TC-AZT"
+                  },
+                  {
+                    "concept": "14c41615-9c0e-4254-b4b1-770956d390e9",
+                    "label": "ABC-3TC-DTG"
+                  },
+                  {
+                    "concept": "162563AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "ABC-3TC-EFV"
+                  },
+                  {
+                    "concept": "162199AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "ABC-3TC-NVP"
+                  },
+                  {
+                    "concept": "b8947da3-017d-42b6-bc7d-652fe35a3b36",
+                    "label": "ABC-3TC-TDF"
+                  },
+                  {
+                    "concept": "1f9ad8f3-1033-45eb-8c5c-8f65fe280984",
+                    "label": "ABC-FTC-DTG"
+                  },
+                  {
+                    "concept": "a0d32ee4-8a68-4d4d-8cf8-23e18c44e62d",
+                    "label": "ABC-FTC-EFV"
+                  },
+                  {
+                    "concept": "e0df55a1-3713-4fb2-ae11-0b98f9ec032f",
+                    "label": "ABC-FTC-NVP"
+                  },
+                  {
+                    "concept": "0340aeb6-94fe-4f73-b4b8-c38b7ab7c649",
+                    "label": "AZT-3TC-DTG"
+                  },
+                  {
+                    "concept": "160124AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "AZT-3TC-EFV"
+                  },
+                  {
+                    "concept": "1652AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "AZT-3TC-NVP"
+                  },
+                  {
+                    "concept": "8b63955a-5cdc-45ad-93f5-e0811ba7c8ba",
+                    "label": "AZT-TDF-NVP"
+                  },
+                  {
+                    "concept": "20700584-431c-41c4-ba5e-da853b9ce75b",
+                    "label": "TDF-3TC-AZT"
+                  },
+                  {
+                    "concept": "6c32f10b-e26d-4299-97af-41b797a8253e",
+                    "label": "TAF-3TC-DTG"
+                  },
+                  {
+                    "concept": "087693e4-30ef-497e-8913-96d058d9c9db",
+                    "label": "TAF-FTC-DTG"
+                  },
+                  {
+                    "concept": "8a343013-0216-44e0-aefe-53909ffd5631",
+                    "label": "TDF-3TC-DTG"
+                  },
+                  {
+                    "concept": "164505AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-3TC-EFV"
+                  },
+                  {
+                    "concept": "162565AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-3TC-NVP"
+                  },
+                  {
+                    "concept": "d20de0fd-8c89-423b-be81-dd357e65c206",
+                    "label": "TDF-FTC-DTG"
+                  },
+                  {
+                    "concept": "104565AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-FTC-EFV"
+                  },
+                  {
+                    "concept": "164854AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-FTC-NVP"
+                  }
+                ]
+              },
+              "hide": {
+                "hideWhenExpression": "isEmpty(regimen_line) || regimen_line !=='164506AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' || Treatment_age_group !== 'a291af62-d00e-4ace-a672-f6f965b325fe'"
+              }
+            },
+            {
+              "label": "Adult 2nd Line ARV Regimen",
+              "type": "obs",
+              "defaultDisplay": "hide",
+              "id": "Adult_2nd_line_ARV_regimen",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "164513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "answers": [
+                  {
+                    "concept": "9053af8f-a75a-44c4-b6e8-f76723ddfc90",
+                    "label": "ABC-3TC-ATV/r"
+                  },
+                  {
+                    "concept": "162200AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "ABC-3TC-LPV/r"
+                  },
+                  {
+                    "concept": "162564AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "ABC-AZT-LPV/r"
+                  },
+                  {
+                    "concept": "164511AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "AZT-3TC-ATV/r"
+                  },
+                  {
+                    "concept": "544eb66b-9f33-48a1-90c5-90db406fb03d",
+                    "label": "AZT-3TC-DRV/r"
+                  },
+                  {
+                    "concept": "162561AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "AZT-3TC-LPV/r"
+                  },
+                  {
+                    "concept": "164512AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-3TC-ATV/r"
+                  },
+                  {
+                    "concept": "f2b45d84-dbd8-4a0e-90e8-8955018d142f",
+                    "label": "TDF-3TC-DRV/r"
+                  },
+                  {
+                    "concept": "162201AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-3TC-LPV/r"
+                  },
+                  {
+                    "concept": "4b24d78c-032c-4ed9-aaef-323a4c80184a",
+                    "label": "TDF-AZT-3TC-ATV/r"
+                  },
+                  {
+                    "concept": "d3e272fb-8663-417b-ac70-f85e552d037f",
+                    "label": "TDF-FTC-ATV/r"
+                  },
+                  {
+                    "concept": "7349930d-b70a-43b5-9763-8911141823e9",
+                    "label": "TDF-FTC-LPV/r"
+                  }
+                ]
+              },
+              "hide": {
+                "hideWhenExpression": "isEmpty(regimen_line) || regimen_line !=='164513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' || Treatment_age_group !== 'a291af62-d00e-4ace-a672-f6f965b325fe'"
+              }
+            },
+            {
+              "label": "Adult 3rd Line ARV Regimens",
+              "type": "obs",
+              "defaultDisplay": "hide",
+              "id": "Adult_3rd_Line_ARV_Regimens",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "73fbac92-4663-43c1-ad89-5fe0bc2e52c7",
+                "answers": [
+                  {
+                    "concept": "a3c11081-b8a1-4205-b139-43155c747dc5",
+                    "label": "ABC-3TC-AZT-ATV/r"
+                  },
+                  {
+                    "concept": "e655f5ad-4061-40f5-acb3-5c3e454295b2",
+                    "label": "ABC-3TC-AZT-EFV"
+                  },
+                  {
+                    "concept": "60a7d398-b1a7-4d8f-a313-915a7f52ac95",
+                    "label": "ABC-3TC-AZT-LPV/r"
+                  },
+                  {
+                    "concept": "186150ce-ed5b-49b5-a82b-b2b46eaa0698",
+                    "label": "ABC-3TC-DTG-ATV/r"
+                  },
+                  {
+                    "concept": "7f1322de-705a-4738-8977-a038e8e8b9a6",
+                    "label": "ABC-3TC-DTG-DRV-RTV"
+                  },
+                  {
+                    "concept": "a3925efb-a83d-401b-8799-30258d4b6c6d",
+                    "label": "ABC-3TC-LPV-ATV/r"
+                  },
+                  {
+                    "concept": "1eb4b11a-0e28-49cf-b4cd-d926a3e5d4cc",
+                    "label": "ABC-3TC-RAL"
+                  },
+                  {
+                    "concept": "8fd12a41-9972-4d56-8c08-dcceee1d4445",
+                    "label": "AZT-3TC-LPV-ATV/r"
+                  },
+                  {
+                    "concept": "7f815ed1-c406-4365-a122-9882b2de5176",
+                    "label": "AZT-3TC-RAL"
+                  },
+                  {
+                    "concept": "d9569a02-92db-4ae5-bd4d-bafb7f0f8f5b",
+                    "label": "AZT-RAL-ATV/r"
+                  },
+                  {
+                    "concept": "c8109095-fa8e-41cb-846a-95270c7eb9df",
+                    "label": "AZT-TDF-3TC-LPV/r"
+                  },
+                  {
+                    "concept": "f03c42a1-d4ce-430e-a4d3-b5ef32aed0ba",
+                    "label": "AZT-TDF-FTC-LPV/r"
+                  },
+                  {
+                    "concept": "7dd0850c-3352-444c-9eea-b6ee4f88a98f",
+                    "label": "TDF-3TC-DTG-DRV-RTV"
+                  },
+                  {
+                    "concept": "581ca5b3-b044-4f1a-b608-563e68154534",
+                    "label": "TDF-3TC-DTG-LPV/r"
+                  },
+                  {
+                    "concept": "84fffdb4-3f0d-4baa-87ae-1debb8cc4a1d",
+                    "label": "TDF-3TC-RAL"
+                  },
+                  {
+                    "concept": "4b24d78c-032c-4ed9-aaef-323a4c80184a",
+                    "label": "TDF-AZT-3TC-ATV/r"
+                  },
+                  {
+                    "concept": "9f5b2c52-87fb-4c26-9c5a-8656a52b3b3c",
+                    "label": "TDF-FTC-AZT-ATV/r"
+                  }
+                ]
+              },
+              "hide": {
+                "hideWhenExpression": "isEmpty(regimen_line) || regimen_line !=='73fbac92-4663-43c1-ad89-5fe0bc2e52c7' || Treatment_age_group !== 'a291af62-d00e-4ace-a672-f6f965b325fe'"
+              }
+            },
+            {
+              "label": "Child 1st Line ARV Regimen",
+              "type": "obs",
+              "defaultDisplay": "hide",
+              "id": "Child_1st_line_ARV_regimen",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "164507AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "answers": [
+                  {
+                    "concept": "14c41615-9c0e-4254-b4b1-770956d390e9",
+                    "label": "ABC-3TC-DTG"
+                  },
+                  {
+                    "concept": "162563AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "ABC-3TC-EFV"
+                  },
+                  {
+                    "concept": "7fb25099-b9f0-4a56-b426-54af91006e09",
+                    "label": "ABC-3TC-EFV400"
+                  },
+                  {
+                    "concept": "162200AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "ABC-3TC-LPV/r"
+                  },
+                  {
+                    "concept": "162199AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "ABC-3TC-NVP"
+                  },
+                  {
+                    "concept": "1f9ad8f3-1033-45eb-8c5c-8f65fe280984",
+                    "label": "ABC-FTC-DTG"
+                  },
+                  {
+                    "concept": "ff885937-9b61-477c-a50a-beb2f66cb3d5",
+                    "label": "ABC-FTC-EFV400"
+                  },
+                  {
+                    "concept": "e0df55a1-3713-4fb2-ae11-0b98f9ec032f",
+                    "label": "ABC-FTC-NVP"
+                  },
+                  {
+                    "concept": "0340aeb6-94fe-4f73-b4b8-c38b7ab7c649",
+                    "label": "AZT-3TC-DTG"
+                  },
+                  {
+                    "concept": "160124AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "AZT-3TC-EFV"
+                  },
+                  {
+                    "concept": "162561AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "AZT-3TC-LPV/r"
+                  },
+                  {
+                    "concept": "1652AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "AZT-3TC-NVP"
+                  },
+                  {
+                    "concept": "7f815ed1-c406-4365-a122-9882b2de5176",
+                    "label": "AZT-3TC-RAL"
+                  },
+                  {
+                    "concept": "8a343013-0216-44e0-aefe-53909ffd5631",
+                    "label": "TDF-3TC-DTG"
+                  },
+                  {
+                    "concept": "164505AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-3TC-EFV"
+                  },
+                  {
+                    "concept": "162565AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-3TC-NVP"
+                  },
+                  {
+                    "concept": "d20de0fd-8c89-423b-be81-dd357e65c206",
+                    "label": "TDF-FTC-DTG"
+                  },
+                  {
+                    "concept": "104565AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-FTC-EFV"
+                  },
+                  {
+                    "concept": "f0772a15-d0d9-4039-a3f4-af0c5d15ed0c",
+                    "label": "TDF-FTC-EFV400"
+                  },
+                  {
+                    "concept": "164854AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-FTC-NVP"
+                  }
+                ]
+              },
+              "hide": {
+                "hideWhenExpression": "isEmpty(regimen_line) || regimen_line !=='164507AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' || Treatment_age_group !== '1528AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+              }
+            },
+            {
+              "label": "Child 2nd Line ARV Regimen",
+              "type": "obs",
+              "defaultDisplay": "hide",
+              "id": "Child_2nd_line_ARV_regimen",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "164514AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "answers": [
+                  {
+                    "concept": "162200AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "ABC-3TC-LPV/r"
+                  },
+                  {
+                    "concept": "162561AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "AZT-3TC-LPV/r"
+                  },
+                  {
+                    "concept": "162201AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "TDF-3TC-LPV/r"
+                  },
+                  {
+                    "concept": "7349930d-b70a-43b5-9763-8911141823e9",
+                    "label": "TDF-FTC-LPV/r"
+                  }
+                ]
+              },
+              "hide": {
+                "hideWhenExpression": "isEmpty(regimen_line) || regimen_line !=='164514AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' || Treatment_age_group !== '1528AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+              }
+            },
+            {
+              "label": "Child 3rd Line ARV Regimens",
+              "type": "obs",
+              "defaultDisplay": "hide",
+              "id": "Child_3rd_Line_ARV_Regimens",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "032e80e0-ed50-4e88-8ce3-7a2dfa40d0ae",
+                "answers": [
+                  {
+                    "concept": "fa4dda1a-c260-42d3-920f-64fb8d7d4a12",
+                    "label": "DRV/r + 2 NRTIs + 2 NNRTI"
+                  },
+                  {
+                    "concept": "739b5068-4451-4eaa-8a71-25655b9b87b4",
+                    "label": "DRV/r +2NRTIs"
+                  },
+                  {
+                    "concept": "b941eb8a-5fe0-43e2-aa9f-ece8e505a0a7",
+                    "label": "DRV/r+RAL + 1-2NRTIs"
+                  },
+                  {
+                    "concept": "e8afbb20-f696-4a6d-af40-36fef51dadbd",
+                    "label": "DRV/r-2NRTIs + NNRTI"
+                  },
+                  {
+                    "concept": "d7827ccd-85a4-4e8e-91d6-bca3d0c5e895",
+                    "label": "DRV/r-DTG + 1-2 NRTIs"
+                  },
+                  {
+                    "concept": "44262769-197b-4936-b092-07fceaf9f0d1",
+                    "label": "DTG+2 NRTIs"
+                  },
+                  {
+                    "concept": "cb77ca6b-9000-4664-9818-10fc6ec6a733",
+                    "label": "RAL(or DTG) + 2 NRTIs"
+                  }
+                ]
+              },
+              "hide": {
+                "hideWhenExpression": "isEmpty(regimen_line) || regimen_line !=='032e80e0-ed50-4e88-8ce3-7a2dfa40d0ae' || Treatment_age_group !== '1528AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+              }
+            },
+            {
+              "label": "",
+              "type": "control",
+              "id": "groups_count",
+              "questionOptions": {
+                "rendering": "number",
+                "calculate": {
+                  "calculateExpression": "5"
+                }
+              },
+              "hide": {
+                "hideWhenExpression": "true"
+              }
+            },
+            {
+              "label": "DEBUG: active_regimen_info",
+              "type": "control",
+              "id": "active_regimen_info",
+              "questionOptions": {
+                "rendering": "text",
+                "calculate": {
+                  "calculateExpression": "(Treatment_age_group || '') + '|' + (regimen_line === '164506AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' ? (Adult_1st_Line_Regimens || '') : regimen_line === '164513AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' ? (Adult_2nd_line_ARV_regimen || '') : regimen_line === '73fbac92-4663-43c1-ad89-5fe0bc2e52c7' ? (Adult_3rd_Line_ARV_Regimens || '') : regimen_line === '164507AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' ? (Child_1st_line_ARV_regimen || '') : regimen_line === '164514AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' ? (Child_2nd_line_ARV_regimen || '') : regimen_line === '032e80e0-ed50-4e88-8ce3-7a2dfa40d0ae' ? (Child_3rd_Line_ARV_Regimens || '') : '')"
+                }
+              },
+              "readonly": true,
+              "hide": {
+                "hideWhenExpression": "true"
+              }
+            },
+            {
+              "label": "ARV Drug 1",
+              "type": "obsGroup",
+              "id": "ARVDrug_1",
+              "questionOptions": {
+                "concept": "162240AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "group"
+              },
+              "questions": [
+                {
+                  "label": "Drugs",
+                  "type": "obs",
+                  "id": "Drugs_ART_1",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "c50dc847-e37e-40b1-92b9-408d9c93b858",
+                    "datasource": {
+                      "name": "arvDrugs",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "active_regimen_info"
+                    }
+                  },
+                  "hide": {
+                    "hideWhenExpression": "false"
+                  }
+                },
+                {
+                  "label": "Drug Strength",
+                  "type": "obs",
+                  "id": "Drug_Strength_ART_1",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "21ea74ee-f6fa-4c55-be36-6337a8f4086c",
+                    "datasource": {
+                      "name": "arvStrengths",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "Drugs_ART_1"
+                    },
+                    "calculate": {
+                      "calculateExpression": "lookupArvStrength(Drugs_ART_1)"
+                    }
+                  }
+                },
+                {
+                  "label": "Drug Frequency",
+                  "type": "obs",
+                  "id": "Drug_Frequency_ART_1",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "4919b76b-81e6-41c7-a5b5-cb383ff4b2fa",
+                    "answers": [
+                      {
+                        "concept": "160862AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Once daily"
+                      },
+                      {
+                        "concept": "160858AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Twice daily"
+                      },
+                      {
+                        "concept": "6f973a60-16a5-49bc-9278-300a9e998646",
+                        "label": "2 BD"
+                      },
+                      {
+                        "concept": "6cd460d3-e4bf-4ef4-bc01-ff5208bfc12c",
+                        "label": "3 BD"
+                      },
+                      {
+                        "concept": "278cb0b7-af51-451c-a061-6fa080f7c773",
+                        "label": "4 BD"
+                      },
+                      {
+                        "concept": "160870AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Four times daily"
+                      },
+                      {
+                        "concept": "a0c98b53-f014-4cb0-a41e-8503c608ef57",
+                        "label": "3ce/week"
+                      },
+                      {
+                        "concept": "733e7044-f9b0-41bc-b069-87c95ecd6882",
+                        "label": "Nocte"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Duration Prescribed(in days)",
+                  "id": "duration_pharm_ART_1",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "159368AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Prescribed",
+                  "id": "qty_prescribed_pharm_ART_1",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "160856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                },
+                {
+                  "label": "Duration Dispensed(in days)",
+                  "id": "arvDispensedInDays_ART_1",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "640de6fb-a670-43e6-8e6c-c3d33582e1a8"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Dispensed",
+                  "id": "qty_dispensed_pharm_ART_1",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "1443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "ARV Drug 2",
+              "type": "obsGroup",
+              "id": "ARVDrug_2",
+              "questionOptions": {
+                "concept": "162240AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "group"
+              },
+              "questions": [
+                {
+                  "label": "Drugs",
+                  "type": "obs",
+                  "id": "Drugs_ART_2",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "c50dc847-e37e-40b1-92b9-408d9c93b858",
+                    "datasource": {
+                      "name": "arvDrugs",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "active_regimen_info"
+                    }
+                  },
+                  "hide": {
+                    "hideWhenExpression": "false"
+                  }
+                },
+                {
+                  "label": "Drug Strength",
+                  "type": "obs",
+                  "id": "Drug_Strength_ART_2",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "21ea74ee-f6fa-4c55-be36-6337a8f4086c",
+                    "datasource": {
+                      "name": "arvStrengths",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "Drugs_ART_2"
+                    },
+                    "calculate": {
+                      "calculateExpression": "lookupArvStrength(Drugs_ART_2)"
+                    }
+                  }
+                },
+                {
+                  "label": "Drug Frequency",
+                  "type": "obs",
+                  "id": "Drug_Frequency_ART_2",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "4919b76b-81e6-41c7-a5b5-cb383ff4b2fa",
+                    "answers": [
+                      {
+                        "concept": "160862AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Once daily"
+                      },
+                      {
+                        "concept": "160858AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Twice daily"
+                      },
+                      {
+                        "concept": "6f973a60-16a5-49bc-9278-300a9e998646",
+                        "label": "2 BD"
+                      },
+                      {
+                        "concept": "6cd460d3-e4bf-4ef4-bc01-ff5208bfc12c",
+                        "label": "3 BD"
+                      },
+                      {
+                        "concept": "278cb0b7-af51-451c-a061-6fa080f7c773",
+                        "label": "4 BD"
+                      },
+                      {
+                        "concept": "160870AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Four times daily"
+                      },
+                      {
+                        "concept": "a0c98b53-f014-4cb0-a41e-8503c608ef57",
+                        "label": "3ce/week"
+                      },
+                      {
+                        "concept": "733e7044-f9b0-41bc-b069-87c95ecd6882",
+                        "label": "Nocte"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Duration Prescribed(in days)",
+                  "id": "duration_pharm_ART_2",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "159368AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Prescribed",
+                  "id": "qty_prescribed_pharm_ART_2",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "160856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                },
+                {
+                  "label": "Duration Dispensed(in days)",
+                  "id": "arvDispensedInDays_ART_2",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "640de6fb-a670-43e6-8e6c-c3d33582e1a8"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Dispensed",
+                  "id": "qty_dispensed_pharm_ART_2",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "1443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                }
+              ],
+              "hide": {
+                "hideWhenExpression": "isEmpty(Drugs_ART_1)"
+              }
+            },
+            {
+              "label": "ARV Drug 3",
+              "type": "obsGroup",
+              "id": "ARVDrug_3",
+              "questionOptions": {
+                "concept": "162240AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "group"
+              },
+              "questions": [
+                {
+                  "label": "Drugs",
+                  "type": "obs",
+                  "id": "Drugs_ART_3",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "c50dc847-e37e-40b1-92b9-408d9c93b858",
+                    "datasource": {
+                      "name": "arvDrugs",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "active_regimen_info"
+                    }
+                  },
+                  "hide": {
+                    "hideWhenExpression": "false"
+                  }
+                },
+                {
+                  "label": "Drug Strength",
+                  "type": "obs",
+                  "id": "Drug_Strength_ART_3",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "21ea74ee-f6fa-4c55-be36-6337a8f4086c",
+                    "datasource": {
+                      "name": "arvStrengths",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "Drugs_ART_3"
+                    },
+                    "calculate": {
+                      "calculateExpression": "lookupArvStrength(Drugs_ART_3)"
+                    }
+                  }
+                },
+                {
+                  "label": "Drug Frequency",
+                  "type": "obs",
+                  "id": "Drug_Frequency_ART_3",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "4919b76b-81e6-41c7-a5b5-cb383ff4b2fa",
+                    "answers": [
+                      {
+                        "concept": "160862AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Once daily"
+                      },
+                      {
+                        "concept": "160858AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Twice daily"
+                      },
+                      {
+                        "concept": "6f973a60-16a5-49bc-9278-300a9e998646",
+                        "label": "2 BD"
+                      },
+                      {
+                        "concept": "6cd460d3-e4bf-4ef4-bc01-ff5208bfc12c",
+                        "label": "3 BD"
+                      },
+                      {
+                        "concept": "278cb0b7-af51-451c-a061-6fa080f7c773",
+                        "label": "4 BD"
+                      },
+                      {
+                        "concept": "160870AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Four times daily"
+                      },
+                      {
+                        "concept": "a0c98b53-f014-4cb0-a41e-8503c608ef57",
+                        "label": "3ce/week"
+                      },
+                      {
+                        "concept": "733e7044-f9b0-41bc-b069-87c95ecd6882",
+                        "label": "Nocte"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Duration Prescribed(in days)",
+                  "id": "duration_pharm_ART_3",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "159368AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Prescribed",
+                  "id": "qty_prescribed_pharm_ART_3",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "160856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                },
+                {
+                  "label": "Duration Dispensed(in days)",
+                  "id": "arvDispensedInDays_ART_3",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "640de6fb-a670-43e6-8e6c-c3d33582e1a8"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Dispensed",
+                  "id": "qty_dispensed_pharm_ART_3",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "1443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                }
+              ],
+              "hide": {
+                "hideWhenExpression": "isEmpty(Drugs_ART_2)"
+              }
+            },
+            {
+              "label": "ARV Drug 4",
+              "type": "obsGroup",
+              "id": "ARVDrug_4",
+              "questionOptions": {
+                "concept": "162240AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "group"
+              },
+              "questions": [
+                {
+                  "label": "Drugs",
+                  "type": "obs",
+                  "id": "Drugs_ART_4",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "c50dc847-e37e-40b1-92b9-408d9c93b858",
+                    "datasource": {
+                      "name": "arvDrugs",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "active_regimen_info"
+                    }
+                  },
+                  "hide": {
+                    "hideWhenExpression": "false"
+                  }
+                },
+                {
+                  "label": "Drug Strength",
+                  "type": "obs",
+                  "id": "Drug_Strength_ART_4",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "21ea74ee-f6fa-4c55-be36-6337a8f4086c",
+                    "datasource": {
+                      "name": "arvStrengths",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "Drugs_ART_4"
+                    },
+                    "calculate": {
+                      "calculateExpression": "lookupArvStrength(Drugs_ART_4)"
+                    }
+                  }
+                },
+                {
+                  "label": "Drug Frequency",
+                  "type": "obs",
+                  "id": "Drug_Frequency_ART_4",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "4919b76b-81e6-41c7-a5b5-cb383ff4b2fa",
+                    "answers": [
+                      {
+                        "concept": "160862AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Once daily"
+                      },
+                      {
+                        "concept": "160858AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Twice daily"
+                      },
+                      {
+                        "concept": "6f973a60-16a5-49bc-9278-300a9e998646",
+                        "label": "2 BD"
+                      },
+                      {
+                        "concept": "6cd460d3-e4bf-4ef4-bc01-ff5208bfc12c",
+                        "label": "3 BD"
+                      },
+                      {
+                        "concept": "278cb0b7-af51-451c-a061-6fa080f7c773",
+                        "label": "4 BD"
+                      },
+                      {
+                        "concept": "160870AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Four times daily"
+                      },
+                      {
+                        "concept": "a0c98b53-f014-4cb0-a41e-8503c608ef57",
+                        "label": "3ce/week"
+                      },
+                      {
+                        "concept": "733e7044-f9b0-41bc-b069-87c95ecd6882",
+                        "label": "Nocte"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Duration Prescribed(in days)",
+                  "id": "duration_pharm_ART_4",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "159368AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Prescribed",
+                  "id": "qty_prescribed_pharm_ART_4",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "160856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                },
+                {
+                  "label": "Duration Dispensed(in days)",
+                  "id": "arvDispensedInDays_ART_4",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "640de6fb-a670-43e6-8e6c-c3d33582e1a8"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Dispensed",
+                  "id": "qty_dispensed_pharm_ART_4",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "1443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                }
+              ],
+              "hide": {
+                "hideWhenExpression": "isEmpty(Drugs_ART_3)"
+              }
+            },
+            {
+              "label": "ARV Drug 5",
+              "type": "obsGroup",
+              "id": "ARVDrug_5",
+              "questionOptions": {
+                "concept": "162240AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "group"
+              },
+              "questions": [
+                {
+                  "label": "Drugs",
+                  "type": "obs",
+                  "id": "Drugs_ART_5",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "c50dc847-e37e-40b1-92b9-408d9c93b858",
+                    "datasource": {
+                      "name": "arvDrugs",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "active_regimen_info"
+                    }
+                  },
+                  "hide": {
+                    "hideWhenExpression": "false"
+                  }
+                },
+                {
+                  "label": "Drug Strength",
+                  "type": "obs",
+                  "id": "Drug_Strength_ART_5",
+                  "questionOptions": {
+                    "rendering": "ui-select-extended",
+                    "concept": "21ea74ee-f6fa-4c55-be36-6337a8f4086c",
+                    "datasource": {
+                      "name": "arvStrengths",
+                      "config": {}
+                    },
+                    "config": {
+                      "referencedField": "Drugs_ART_5"
+                    },
+                    "calculate": {
+                      "calculateExpression": "lookupArvStrength(Drugs_ART_5)"
+                    }
+                  }
+                },
+                {
+                  "label": "Drug Frequency",
+                  "type": "obs",
+                  "id": "Drug_Frequency_ART_5",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "4919b76b-81e6-41c7-a5b5-cb383ff4b2fa",
+                    "answers": [
+                      {
+                        "concept": "160862AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Once daily"
+                      },
+                      {
+                        "concept": "160858AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Twice daily"
+                      },
+                      {
+                        "concept": "6f973a60-16a5-49bc-9278-300a9e998646",
+                        "label": "2 BD"
+                      },
+                      {
+                        "concept": "6cd460d3-e4bf-4ef4-bc01-ff5208bfc12c",
+                        "label": "3 BD"
+                      },
+                      {
+                        "concept": "278cb0b7-af51-451c-a061-6fa080f7c773",
+                        "label": "4 BD"
+                      },
+                      {
+                        "concept": "160870AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Four times daily"
+                      },
+                      {
+                        "concept": "a0c98b53-f014-4cb0-a41e-8503c608ef57",
+                        "label": "3ce/week"
+                      },
+                      {
+                        "concept": "733e7044-f9b0-41bc-b069-87c95ecd6882",
+                        "label": "Nocte"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Duration Prescribed(in days)",
+                  "id": "duration_pharm_ART_5",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "159368AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Prescribed",
+                  "id": "qty_prescribed_pharm_ART_5",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "160856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                },
+                {
+                  "label": "Duration Dispensed(in days)",
+                  "id": "arvDispensedInDays_ART_5",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "640de6fb-a670-43e6-8e6c-c3d33582e1a8"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Dispensed",
+                  "id": "qty_dispensed_pharm_ART_5",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "1443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                }
+              ],
+              "hide": {
+                "hideWhenExpression": "isEmpty(Drugs_ART_4)"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "2. Drugs for OI Prophylaxis/Treatment",
+      "sections": [
+        {
+          "label": "Drugs for OI Prophylaxis/Treatment",
+          "questions": [
+            {
+              "label": "",
+              "type": "obsGroup",
+              "id": "oi_prophylaxis",
+              "questionOptions": {
+                "concept": "99577a67-24b2-448f-aeab-6f1b67f265d6",
+                "rendering": "repeating",
+                "repeatOptions": {
+                  "limit": "5"
+                }
+              },
+              "questions": [
+                {
+                  "label": "Drugs",
+                  "type": "obs",
+                  "id": "drugs_Cotrim",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "b04e1799-87fa-476c-bd43-c05a7de70a69",
+                    "answers": [
+                      {
+                        "concept": "dbf8a287-3c82-440b-bfc3-a4b9432f9183",
+                        "label": "Cotrimoxazole"
+                      },
+                      {
+                        "concept": "76488AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Fluconazole"
+                      },
+                      {
+                        "concept": "76489AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Flucytosine (100mg/Kg in 4 divided doses)"
+                      },
+                      {
+                        "concept": "ea04b30e-10a0-4927-ad67-7126e5b2696b",
+                        "label": "Cotrimoxazole/Isoniazid/Pyridoxine"
+                      },
+                      {
+                        "concept": "80945AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Nystatin"
+                      },
+                      {
+                        "concept": "71187AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Liposomal Amphotericin B (3mg/Kg IV dly)"
+                      },
+                      {
+                        "concept": "1679AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Isoniazid"
+                      },
+                      {
+                        "concept": "7f6eb353-05d1-47f3-89af-4c7b903192b8",
+                        "label": "Isoniazid/Rifampentine (3HP)"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Strength",
+                  "type": "obs",
+                  "id": "oi_prophylaxis_drug_strength",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "21ea74ee-f6fa-4c55-be36-6337a8f4086c",
+                    "answers": [
+                      {
+                        "concept": "c03561ed-1402-4bfe-b95d-9547fe6b9bf7",
+                        "label": "960mg"
+                      },
+                      {
+                        "concept": "106d9ce8-92d4-4549-9735-9ddaad20136a",
+                        "label": "480mg"
+                      },
+                      {
+                        "concept": "409fccb1-a7de-412f-9ee6-1e96d4b0b65a",
+                        "label": "150mg"
+                      },
+                      {
+                        "concept": "19d2900a-6700-41ae-9dd5-6b15e748932f",
+                        "label": "240mg"
+                      },
+                      {
+                        "concept": "1b6cd424-0941-42c5-910c-19a260c73b3b",
+                        "label": "120mg"
+                      },
+                      {
+                        "concept": "81246203-b486-4ec7-babf-05ad0669c51b",
+                        "label": "1920mg"
+                      },
+                      {
+                        "concept": "abbb66b8-61c9-4b58-bad6-edf1efa546e1",
+                        "label": "300mg"
+                      },
+                      {
+                        "concept": "60cffa67-3896-491c-bab9-220cbed138ce",
+                        "label": "500mg"
+                      },
+                      {
+                        "concept": "27f5a185-9791-45b2-89e8-89df69fdac71",
+                        "label": "100mg"
+                      },
+                      {
+                        "concept": "8317c59b-4e30-49b9-bbc9-a966408d02a6",
+                        "label": "40mg"
+                      },
+                      {
+                        "concept": "5a35ae10-1a00-4df2-83fd-3dba0465df0a",
+                        "label": "80mg"
+                      },
+                      {
+                        "concept": "c543792b-6225-4a70-8e1f-04ea5be06212",
+                        "label": "50mg"
+                      },
+                      {
+                        "concept": "da318ab9-efce-47a9-a975-468a718d4ef6",
+                        "label": "200mg"
+                      },
+                      {
+                        "concept": "3620ba59-4313-45b4-897f-764f0609512c",
+                        "label": "25mg"
+                      },
+                      {
+                        "concept": "d6a11b94-efe5-415e-8071-29d75356bac0",
+                        "label": "600mg"
+                      },
+                      {
+                        "concept": "9f687650-e9cf-43ae-bded-c1e957bf25a2",
+                        "label": "400mg"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Frequency",
+                  "type": "obs",
+                  "id": "oi_prophylaxis_drug_frequency",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "4919b76b-81e6-41c7-a5b5-cb383ff4b2fa",
+                    "answers": [
+                      {
+                        "concept": "160862AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Once daily"
+                      },
+                      {
+                        "concept": "160858AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Twice daily"
+                      },
+                      {
+                        "concept": "6f973a60-16a5-49bc-9278-300a9e998646",
+                        "label": "2 BD"
+                      },
+                      {
+                        "concept": "6cd460d3-e4bf-4ef4-bc01-ff5208bfc12c",
+                        "label": "3 BD"
+                      },
+                      {
+                        "concept": "278cb0b7-af51-451c-a061-6fa080f7c773",
+                        "label": "4 BD"
+                      },
+                      {
+                        "concept": "160870AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Four times daily"
+                      },
+                      {
+                        "concept": "a0c98b53-f014-4cb0-a41e-8503c608ef57",
+                        "label": "3ce/week"
+                      },
+                      {
+                        "concept": "733e7044-f9b0-41bc-b069-87c95ecd6882",
+                        "label": "Nocte"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Duration Prescribed (in days)",
+                  "id": "oi_prophylaxis_duration_Pres",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "159368AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Prescribed",
+                  "id": "qty_prescribed_Cotrim",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "160856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                },
+                {
+                  "label": "Duration Dispensed (in days)",
+                  "id": "oi_prophylaxisDispensedInDays",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "640de6fb-a670-43e6-8e6c-c3d33582e1a8"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Dispensed",
+                  "id": "oi_prophylaxis_qty_dispensed",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "1443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "3. Drugs for TB Preventive Therapy",
+      "sections": [
+        {
+          "label": "Drugs for TB Preventive Therapy",
+          "questions": [
+            {
+              "label": "",
+              "type": "obsGroup",
+              "id": "tb_prev",
+              "questionOptions": {
+                "concept": "f3772dae-fc93-4428-baa7-268f83462e3f",
+                "rendering": "repeating",
+                "repeatOptions": {
+                  "limit": "5"
+                }
+              },
+              "questions": [
+                {
+                  "label": "Drugs",
+                  "type": "obs",
+                  "id": "tb_prev_drugs",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "b04e1799-87fa-476c-bd43-c05a7de70a69",
+                    "answers": [
+                      {
+                        "concept": "656AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Isoniazid"
+                      },
+                      {
+                        "concept": "1194",
+                        "label": "RH"
+                      },
+                      {
+                        "concept": "fb10f00f-933c-4848-bec2-cb2a6afece58",
+                        "label": "RHZE/EH"
+                      },
+                      {
+                        "concept": "9b4fadab-75b9-40b3-bc27-15bd8aef17fb",
+                        "label": "RHZE/RH"
+                      },
+                      {
+                        "concept": "1675AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "RHZE"
+                      },
+                      {
+                        "concept": "768AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "RHZ"
+                      },
+                      {
+                        "concept": "1108AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "EH"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Others"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Strength",
+                  "type": "obs",
+                  "id": "tb_prev_drugs_strength",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "21ea74ee-f6fa-4c55-be36-6337a8f4086c",
+                    "answers": [
+                      {
+                        "concept": "27f5a185-9791-45b2-89e8-89df69fdac71",
+                        "label": "100mg"
+                      },
+                      {
+                        "concept": "cd94a1ed-2812-4170-8bc7-90abded1beab",
+                        "label": "150Mg/75mg"
+                      },
+                      {
+                        "concept": "550b250c-fcc8-4176-b833-2b1355982597",
+                        "label": "150Mg/75mg/40mg"
+                      },
+                      {
+                        "concept": "abbb66b8-61c9-4b58-bad6-edf1efa546e1",
+                        "label": "300mg"
+                      },
+                      {
+                        "concept": "6717b4c6-4cf3-4ef1-9734-f2da5300003f",
+                        "label": "300/150mg"
+                      },
+                      {
+                        "concept": "fcd74eb9-c917-42b1-969a-696b15a5627c",
+                        "label": "300/300mg"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Others"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Frequency",
+                  "type": "obs",
+                  "id": "tb_prev_drugs_frequency",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "4919b76b-81e6-41c7-a5b5-cb383ff4b2fa",
+                    "answers": [
+                      {
+                        "concept": "160862AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Once daily"
+                      },
+                      {
+                        "concept": "160858AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Twice daily"
+                      },
+                      {
+                        "concept": "6f973a60-16a5-49bc-9278-300a9e998646",
+                        "label": "2 BD"
+                      },
+                      {
+                        "concept": "6cd460d3-e4bf-4ef4-bc01-ff5208bfc12c",
+                        "label": "3 BD"
+                      },
+                      {
+                        "concept": "278cb0b7-af51-451c-a061-6fa080f7c773",
+                        "label": "4 BD"
+                      },
+                      {
+                        "concept": "160870AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Four times daily"
+                      },
+                      {
+                        "concept": "a0c98b53-f014-4cb0-a41e-8503c608ef57",
+                        "label": "3ce/week"
+                      },
+                      {
+                        "concept": "733e7044-f9b0-41bc-b069-87c95ecd6882",
+                        "label": "Nocte"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Duration Prescribed (in days)",
+                  "id": "tb_prev_drugs_duration_Pres",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "159368AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Prescribed",
+                  "id": "qty_prescribed_tb_prev",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "160856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                },
+                {
+                  "label": "Duration Dispensed (in days)",
+                  "id": "tb_prevDispensedInDays",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "640de6fb-a670-43e6-8e6c-c3d33582e1a8"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Dispensed",
+                  "id": "tb_prev_drugs_qty_dispensed",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "1443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "4. PrEP Drugs",
+      "sections": [
+        {
+          "label": "PrEP Drugs",
+          "questions": [
+            {
+              "label": "",
+              "type": "obsGroup",
+              "id": "prepdrug",
+              "questionOptions": {
+                "concept": "9734f48e-5089-4b1d-bade-eae45a86670f",
+                "rendering": "repeating",
+                "repeatOptions": {
+                  "limit": "5"
+                }
+              },
+              "questions": [
+                {
+                  "label": "Drugs",
+                  "type": "obs",
+                  "id": "prev_drugs",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "1e9bf396-b409-42cf-8d39-0cef30f96121",
+                    "answers": [
+                      {
+                        "concept": "9aed739b-a64a-4e0d-afa0-f2b50d4cb2c2",
+                        "label": "Cabotegravir"
+                      },
+                      {
+                        "concept": "c83188a1-f411-49f5-a1b6-19881a0354a2",
+                        "label": "Lenacapavir"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Strength",
+                  "type": "obs",
+                  "id": "prev_drugs_strength",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "21ea74ee-f6fa-4c55-be36-6337a8f4086c",
+                    "answers": [
+                      {
+                        "concept": "5942eb74-1dca-4199-bd60-875b0fcc683a",
+                        "label": "200mg/ml (3ml vial)",
+                        "hide": {
+                          "hideWhenExpression": "prev_drugs === 'c83188a1-f411-49f5-a1b6-19881a0354a2'"
+                        }
+                      },
+                      {
+                        "concept": "d6a11b94-efe5-415e-8071-29d75356bac0",
+                        "label": "600mg (Tabs)",
+                        "hide": {
+                          "hideWhenExpression": "prev_drugs === '9aed739b-a64a-4e0d-afa0-f2b50d4cb2c2'"
+                        }
+                      },
+                      {
+                        "concept": "2318aea5-6172-44f1-849b-266d9015f63f",
+                        "label": "927mg/3ml (inj)",
+                        "hide": {
+                          "hideWhenExpression": "prev_drugs === '9aed739b-a64a-4e0d-afa0-f2b50d4cb2c2'"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Frequency",
+                  "type": "obs",
+                  "id": "prev_drugs_frequency",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "4919b76b-81e6-41c7-a5b5-cb383ff4b2fa",
+                    "answers": [
+                      {
+                        "concept": "160862AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Once daily"
+                      },
+                      {
+                        "concept": "160858AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Twice daily"
+                      },
+                      {
+                        "concept": "6f973a60-16a5-49bc-9278-300a9e998646",
+                        "label": "2 BD"
+                      },
+                      {
+                        "concept": "6cd460d3-e4bf-4ef4-bc01-ff5208bfc12c",
+                        "label": "3 BD"
+                      },
+                      {
+                        "concept": "278cb0b7-af51-451c-a061-6fa080f7c773",
+                        "label": "4 BD"
+                      },
+                      {
+                        "concept": "160870AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Four times daily"
+                      },
+                      {
+                        "concept": "a0c98b53-f014-4cb0-a41e-8503c608ef57",
+                        "label": "3ce/week"
+                      },
+                      {
+                        "concept": "733e7044-f9b0-41bc-b069-87c95ecd6882",
+                        "label": "Nocte"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Duration Prescribed (in days)",
+                  "id": "prepdura",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "159368AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Prescribed",
+                  "id": "qty_prescribed_prev",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "160856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                },
+                {
+                  "label": "Duration Dispensed (in days)",
+                  "id": "prepDispensedInDays",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "640de6fb-a670-43e6-8e6c-c3d33582e1a8"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Dispensed",
+                  "id": "prep_drugs_qty_dispensed",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "1443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "5. Drugs for other OIs or non-HIV related conditions",
+      "sections": [
+        {
+          "label": "Other Drugs",
+          "questions": [
+            {
+              "label": "",
+              "type": "obsGroup",
+              "id": "others_prev",
+              "questionOptions": {
+                "concept": "536ed751-b2e3-4937-881f-027d97fd125f",
+                "rendering": "repeating",
+                "repeatOptions": {
+                  "limit": "5"
+                }
+              },
+              "questions": [
+                {
+                  "label": "Drugs",
+                  "id": "other_prev_drugs",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "163101AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": []
+                },
+                {
+                  "label": "Strength",
+                  "type": "obs",
+                  "id": "other_drugs_strength",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "bc854268-e761-45b5-81f2-865943e91999"
+                  }
+                },
+                {
+                  "label": "Frequency",
+                  "type": "obs",
+                  "id": "other_drugs_frequency",
+                  "questionOptions": {
+                    "rendering": "select",
+                    "concept": "4919b76b-81e6-41c7-a5b5-cb383ff4b2fa",
+                    "answers": [
+                      {
+                        "concept": "160862AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Once daily"
+                      },
+                      {
+                        "concept": "160858AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Twice daily"
+                      },
+                      {
+                        "concept": "6f973a60-16a5-49bc-9278-300a9e998646",
+                        "label": "2 BD"
+                      },
+                      {
+                        "concept": "6cd460d3-e4bf-4ef4-bc01-ff5208bfc12c",
+                        "label": "3 BD"
+                      },
+                      {
+                        "concept": "278cb0b7-af51-451c-a061-6fa080f7c773",
+                        "label": "4 BD"
+                      },
+                      {
+                        "concept": "160870AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Four times daily"
+                      },
+                      {
+                        "concept": "a0c98b53-f014-4cb0-a41e-8503c608ef57",
+                        "label": "3ce/week"
+                      },
+                      {
+                        "concept": "733e7044-f9b0-41bc-b069-87c95ecd6882",
+                        "label": "Nocte"
+                      },
+                      {
+                        "concept": "5622AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "label": "Other"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "Duration Prescribed (in days)",
+                  "id": "other_drugs_duration_Pres",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "159368AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Prescribed",
+                  "id": "qty_prescribed_other",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "160856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                },
+                {
+                  "label": "Duration Dispensed (in days)",
+                  "id": "other_prevDispensedInDays",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "640de6fb-a670-43e6-8e6c-c3d33582e1a8"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 180)",
+                      "message": "Value must be between 1 and 180 days"
+                    }
+                  ]
+                },
+                {
+                  "label": "Qty Dispensed",
+                  "id": "other_drugs_qty_dispensed",
+                  "questionOptions": {
+                    "rendering": "text",
+                    "concept": "1443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  },
+                  "type": "obs",
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && !/^[0-9]+$/.test(String(myValue))",
+                      "message": "Only whole numbers are allowed (digits only, no decimals, letters or symbols)"
+                    },
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "!isEmpty(myValue) && /^[0-9]+$/.test(String(myValue)) && (Number(myValue) < 1 || Number(myValue) > 720)",
+                      "message": "Value must be between 1 and 720"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Next Appointment",
+      "sections": [
+        {
+          "label": "Next Appointment",
+          "questions": [
+            {
+              "label": "Calculated Next Appointment Date",
+              "type": "obs",
+              "id": "calculated_next_appointment_date",
+              "questionOptions": {
+                "rendering": "date",
+                "concept": "5096AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "calculate": {
+                  "calculateExpression": "calcNextVisitDate(visitDate, Number(arvDispensedInDays_ART_1))"
+                }
+              },
+              "validators": [
+                {
+                  "type": "date",
+                  "allowFutureDates": "true"
+                },
+                {
+                  "type": "js_expression",
+                  "failsWhenExpression": "Treatment_type === '9b49eb5e-9ca9-4494-a2ff-f1d62b6feecc' && isEmpty(myValue)",
+                  "message": "Next appointment should be filled appropriately"
+                },
+                {
+                  "type": "js_expression",
+                  "failsWhenExpression": "!isEmpty(myValue) && myValue <= visitDate",
+                  "message": "Next appointment cannot be before or same as the visit date"
+                }
+              ],
+              "datePickerFormat": "calendar"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Signature",
+      "sections": [
+        {
+          "label": "Signature",
+          "questions": [
+            {
+              "type": "encounterProvider",
+              "questionOptions": {
+                "rendering": "ui-select-extended"
+              },
+              "id": "orderBy",
+              "label": "Order By:",
+              "required": false
+            },
+            {
+              "label": "Date orderd:",
+              "id": "dateOrdered",
+              "questionOptions": {
+                "rendering": "date",
+                "concept": "2552b7df-30b8-4789-8165-46461cd4b015"
+              },
+              "type": "obs",
+              "validators": [
+                {
+                  "type": "date",
+                  "allowFutureDates": "false"
+                },
+                {
+                  "type": "js_expression",
+                  "failsWhenExpression": " new Date(dateOrdered).setHours(0,0,0,0) < new Date(visitDate).setHours(0,0,0,0)",
+                  "message": "Order Date cannot be earlier than Visit Date"
+                }
+              ]
+            },
+            {
+              "type": "encounterProvider",
+              "questionOptions": {
+                "rendering": "ui-select-extended"
+              },
+              "id": "dispensedBy",
+              "label": "Dispensed By",
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Pharmacist's Feedback",
+      "sections": [
+        {
+          "label": "Feedback from the Pharmacist in case of any observed medication error",
+          "questions": [
+            {
+              "label": "Name of the drug(s):",
+              "id": "name_of_drug_pharm",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "642c39a4-3dff-4290-af10-78b8e387ce8a"
+              },
+              "type": "obs",
+              "validators": []
+            },
+            {
+              "label": "Nature of ARV medication error(s):",
+              "id": "name_of_arv_error_pharm",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "d552f1aa-7967-4d54-a576-e88ffddfbd82"
+              },
+              "type": "obs",
+              "validators": []
+            },
+            {
+              "type": "obs",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "2175cdfa-62b2-4376-8593-a6e3531078ee"
+              },
+              "id": "consequence(S)OfTheError",
+              "label": "Consequence(s) of the error"
+            },
+            {
+              "type": "encounterProvider",
+              "questionOptions": {
+                "rendering": "ui-select-extended"
+              },
+              "id": "signature",
+              "label": "Signature"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "2.5",
+  "published": true,
+  "retired": false,
+  "description": "Combined Pharmacy Order Form",
+  "encounterType": "a1fa6aa3-59e1-4833-a28c-bb62f2fb07df"
+}

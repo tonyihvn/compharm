@@ -1,0 +1,636 @@
+{
+  "name": "Adverse Drug Reaction Form",
+  "version": "1.0",
+  "published": true,
+  "retired": false,
+  "processor": "EncounterFormProcessor",
+  "encounterType": "d1368f8b-3262-4053-a90f-c0a325e65939",
+  "referencedForms": [],
+  "uuid": "40a38992-18c1-463e-8413-cdaa29a9e420",
+  "pages": [
+    {
+      "label": "Adverse Drug Reaction Form",
+      "sections": [
+        {
+          "label": "Adverse Reaction Description",
+          "isExpanded": true,
+          "questions": [
+            {
+              "label": "Date Reaction Started",
+              "type": "obs",
+              "required": false,
+              "id": "date_reaction_started",
+              "datePickerFormat": "calendar",
+              "questionOptions": {
+                "rendering": "date",
+                "concept": "164428AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              },
+              "validators": [
+                {
+                  "type": "date",
+                  "allowFutureDates": "false"
+                }
+              ]
+            },
+            {
+              "label": "Date Reaction Stopped",
+              "type": "obs",
+              "required": false,
+              "id": "date_reaction_stopped",
+              "datePickerFormat": "calendar",
+              "questionOptions": {
+                "rendering": "date",
+                "concept": "2240b4b4-d748-4cfc-a4a1-967e6b603b77"
+              },
+              "validators": [
+                {
+                  "type": "js_expression",
+                  "failsWhenExpression": "date_reaction_started > date_reaction_stopped",
+                  "message": "Date Stopped cannot be earlier than Date Started"
+                },
+                {
+                  "type": "date",
+                  "allowFutureDates": "false"
+                }
+              ]
+            },
+            {
+              "label": "Was Patient admitted?",
+              "type": "obs",
+              "id": "was_patient_admitteds",
+              "questionOptions": {
+                "concept": "2774d8f0-5b3a-40b1-9d02-40e69d855489",
+                "rendering": "select",
+                "answers": [
+                  {
+                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "No"
+                  },
+                  {
+                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Yes"
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Duration of admission (days)",
+              "type": "obs",
+              "hide": {
+                "hideWhenExpression": "isEmpty(was_patient_admitteds) || was_patient_admitteds !== '1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+              },
+              "id": "durationDays",
+              "questionOptions": {
+                "concept": "162196AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "number",
+                "step": 1,
+                "min": "1"
+              },
+              "validators": [
+                {
+                  "type": "js_expression",
+                  "failsWhenExpression": "durationDays % 1 !== 0",
+                  "message": "Please enter a whole number."
+                }
+              ]
+            },
+            {
+              "label": "Treatment of Reaction",
+              "type": "obs",
+              "hide": {
+                "hideWhenExpression": "isEmpty(was_patient_admitteds) || was_patient_admitteds !== '1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+              },
+              "id": "treatmentReaction",
+              "questionOptions": {
+                "concept": "910ce57e-10a9-433e-abb0-ffd499745946",
+                "rendering": "text"
+              }
+            },
+            {
+              "label": "Outcome of Reaction",
+              "type": "obs",
+              "required": false,
+              "id": "reactionOutcome",
+              "inlineMultiCheckbox": true,
+              "questionOptions": {
+                "rendering": "checkbox",
+                "concept": "a735d259-8a02-477a-8d6e-353635e1d705",
+                "answers": [
+                  {
+                    "concept": "6b2969fe-848e-4028-ac07-79e8a45f626a",
+                    "label": "Recovered fully"
+                  },
+                  {
+                    "concept": "7e87fe0c-3f2f-4bbe-b4ba-fb559808cb75",
+                    "label": "Recovered with Disability"
+                  },
+                  {
+                    "concept": "119975AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "CONGENITAL ABNORMALITY"
+                  },
+                  {
+                    "concept": "dca050f4-d317-47d2-b23a-05354b4eba86",
+                    "label": "Hospitalization outcome"
+                  },
+                  {
+                    "concept": "7a744c82-f195-4bcb-9cf8-3e2c513aff61",
+                    "label": "Life Threatening"
+                  },
+                  {
+                    "concept": "cc1ba06b-b781-48fd-aefa-f224607373f6",
+                    "label": "Death Outcome"
+                  },
+                  {
+                    "concept": "5256AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "OTHER"
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Adverse Event or Reaction reappeared on Rechallenge?",
+              "type": "obs",
+              "id": "advereEvent",
+              "questionOptions": {
+                "concept": "8b36755a-0c1d-4630-a5fe-5bd5b14f65cd",
+                "rendering": "select",
+                "answers": [
+                  {
+                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "No"
+                  },
+                  {
+                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Yes"
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Rechallenge not done",
+              "type": "obs",
+              "id": "rechallengeNotDone",
+              "questionOptions": {
+                "concept": "120958cc-2086-4373-8d86-d79939035520",
+                "rendering": "select",
+                "answers": [
+                  {
+                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "No"
+                  },
+                  {
+                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Yes"
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Relevant Tests/Laboratory Data",
+              "type": "obs",
+              "required": false,
+              "id": "releventTest",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "c5ec915b-887c-4040-9724-a9c7ffbcaab8"
+              }
+            }
+          ]
+        },
+        {
+          "label": "SUSPECTED DRUG - Drug Details (Including Biologicals, Traditional/Herbal Medicines and Cosmetics)",
+          "isExpanded": true,
+          "questions": [
+            {
+              "label": "Brand Name",
+              "type": "obs",
+              "required": false,
+              "id": "brandName2",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "cdea78ea-ae0c-4c58-8205-a44e21d204d8"
+              }
+            },
+            {
+              "label": "Generic Name",
+              "type": "obs",
+              "required": false,
+              "id": "genericName",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "45ee4081-2ba2-4ef8-8712-82b10a8c290a"
+              }
+            },
+            {
+              "label": "Batch Number",
+              "type": "obs",
+              "required": false,
+              "id": "batchNumber",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "c20bda2a-b26f-4e0e-b432-12ceb352c380"
+              }
+            },
+            {
+              "label": "NAFDAC No",
+              "type": "obs",
+              "required": false,
+              "id": "nafdacNo",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "6945c480-70d7-4775-acd0-29b0237430c6"
+              }
+            },
+            {
+              "label": "Expiry Date",
+              "type": "obs",
+              "required": false,
+              "id": "expiryDate",
+              "datePickerFormat": "calendar",
+              "questionOptions": {
+                "rendering": "date",
+                "concept": "162502AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              },
+              "validators": [
+                {
+                  "type": "date",
+                  "allowFutureDates": "true"
+                }
+              ]
+            },
+            {
+              "label": "Name and Address of Manufacturer",
+              "type": "obs",
+              "required": false,
+              "id": "manuAddress",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "40cca222-4cc5-42c7-88fa-f9f938599a79"
+              }
+            },
+            {
+              "label": "Indications for use",
+              "type": "obs",
+              "required": false,
+              "id": "indicationForUse",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "dccc085a-f1a7-4f72-bd69-fe28281c0467"
+              }
+            },
+            {
+              "label": "Dosage",
+              "type": "obs",
+              "id": "Dosage",
+              "questionOptions": {
+                "concept": "d6e21468-c26d-4c78-af32-28257715dfc3",
+                "rendering": "number",
+                "step": 1,
+                "min": "1"
+              },
+              "validators": [
+                {
+                  "type": "js_expression",
+                  "failsWhenExpression": "Dosage % 1 !== 0",
+                  "message": "Please enter a whole number."
+                }
+              ]
+            },
+            {
+              "label": "Route of Administration",
+              "type": "obs",
+              "required": false,
+              "id": "routeAdmin",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "a5c8b9b5-2714-436a-a372-3ee2c7115aac"
+              }
+            },
+            {
+              "label": "Date Started",
+              "type": "obs",
+              "required": false,
+              "id": "dateStarted",
+              "datePickerFormat": "calendar",
+              "questionOptions": {
+                "rendering": "date",
+                "concept": "daef3300-7f7e-45c1-a2bf-5d8b76ab93ba"
+              },
+              "validators": [
+                {
+                  "type": "date",
+                  "allowFutureDates": "false"
+                }
+              ]
+            },
+            {
+              "label": "Date Stopped",
+              "type": "obs",
+              "required": false,
+              "id": "dateStopped",
+              "datePickerFormat": "calendar",
+              "questionOptions": {
+                "rendering": "date",
+                "concept": "6e56c7fb-da43-427e-ade5-f2a861da85ff"
+              },
+              "validators": [
+                {
+                  "type": "js_expression",
+                  "failsWhenExpression": "dateStarted > dateStopped",
+                  "message": "Date Stopped cannot be earlier than Date Started"
+                },
+                {
+                  "type": "date",
+                  "allowFutureDates": "false"
+                }
+              ]
+            },
+            {
+              "label": "Source of Drugs",
+              "type": "obs",
+              "required": false,
+              "id": "sourceOfDrugs",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "b75f5803-34e9-46ea-bd41-c174670a13c7",
+                "answers": [
+                  {
+                    "concept": "ca13160f-e604-43d9-af93-5f4bf0a7dd7c",
+                    "label": "Street Vendor"
+                  },
+                  {
+                    "concept": "343e3b47-f601-44ae-b944-8a838484dc71",
+                    "label": "Community Pharmacy"
+                  },
+                  {
+                    "concept": "d5c0ba16-6db2-42af-9998-0924ba8e714f",
+                    "label": "Patent Medicine Shop"
+                  },
+                  {
+                    "concept": "5256AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Other"
+                  },
+                  {
+                    "concept": "dd1f4895-ebf5-4a05-9adb-b64f7cffd78d",
+                    "label": "Hospital Pharmacy"
+                  },
+                  {
+                    "concept": "8dc9ee91-7db8-46c7-8f1c-08fb51393410",
+                    "label": "Traditional/Herbal Practitioner"
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Specify",
+              "hide": {
+                "hideWhenExpression": "isEmpty(sourceOfDrugs) || sourceOfDrugs !== '5256AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+              },
+              "type": "obs",
+              "required": false,
+              "id": "specifyDrug",
+              "questionOptions": {
+                "rendering": "text",
+                "concept": "f1c454ba-e258-4ef2-9ace-0af54ca6a705"
+              }
+            },
+            {
+              "label": "Prescribed?",
+              "type": "obs",
+              "required": false,
+              "id": "prescribedDrug",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "9a4213d4-2eaf-4295-8565-e007cd67a524",
+                "answers": [
+                  {
+                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "No"
+                  },
+                  {
+                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Yes"
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Obtained Over the Counter",
+              "type": "obs",
+              "required": false,
+              "id": "OTC",
+              "questionOptions": {
+                "rendering": "select",
+                "concept": "ee086f5c-3ea1-414d-854f-b6a31bf23d35",
+                "answers": [
+                  {
+                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "No"
+                  },
+                  {
+                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Yes"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "label": "Drugs taken within last 3 months (All Concomitant medicines including herbal medicines and self medication)",
+          "isExpanded": true,
+          "questions": [
+            {
+              "label": "Details",
+              "type": "obsGroup",
+              "id": "verificationAttempt1",
+              "questionOptions": {
+                "concept": "3108c000-cffd-419a-87ed-5d9300702c35",
+                "rendering": "repeating",
+                "repeatOptions": {
+                  "limitExpression": "useFieldValue('groups_count')"
+                }
+              },
+              "questions": [
+                {
+                  "label": "Brand Name",
+                  "type": "obs",
+                  "id": "brandName",
+                  "questionOptions": {
+                    "concept": "cdea78ea-ae0c-4c58-8205-a44e21d204d8",
+                    "rendering": "text"
+                  }
+                },
+                {
+                  "label": "Dosage",
+                  "type": "obs",
+                  "id": "dosage1",
+                  "questionOptions": {
+                    "concept": "d6e21468-c26d-4c78-af32-28257715dfc3",
+                    "rendering": "number",
+                    "step": 1,
+                    "min": "1"
+                  },
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "dosage1 % 1 !== 0",
+                      "message": "Please enter a whole number."
+                    }
+                  ]
+                },
+                {
+                  "label": "Route",
+                  "type": "obs",
+                  "id": "route",
+                  "questionOptions": {
+                    "concept": "a5c8b9b5-2714-436a-a372-3ee2c7115aac",
+                    "rendering": "text"
+                  }
+                },
+                {
+                  "label": "Date Started",
+                  "type": "obs",
+                  "id": "date_started_drug",
+                  "questionOptions": {
+                    "concept": "daef3300-7f7e-45c1-a2bf-5d8b76ab93ba",
+                    "rendering": "date"
+                  },
+                  "validators": [
+                    {
+                      "type": "date",
+                      "allowFutureDates": "false"
+                    }
+                  ]
+                },
+                {
+                  "label": "date Stopped",
+                  "type": "obs",
+                  "id": "date_stoppped_drug",
+                  "questionOptions": {
+                    "concept": "6e56c7fb-da43-427e-ade5-f2a861da85ff",
+                    "rendering": "date"
+                  },
+                  "validators": [
+                    {
+                      "type": "js_expression",
+                      "failsWhenExpression": "date_started_drug > date_stoppped_drug",
+                      "message": "Date Stopped cannot be earlier than Date Started"
+                    },
+                    {
+                      "type": "date",
+                      "allowFutureDates": "false"
+                    }
+                  ]
+                },
+                {
+                  "label": "Reason For Use",
+                  "type": "obs",
+                  "id": "reaseonForUse",
+                  "questionOptions": {
+                    "concept": "252b0193-8f7e-41e7-a0c0-b5ab781e2d88",
+                    "rendering": "text"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Source of Report",
+          "isExpanded": true,
+          "questions": [
+            {
+              "label": "OTHER RELEVANT MEDICAL HISTORY (e.g. Allergies, Pregnancy, Previous Exposure to Drug, Alcohol, Tobacco, etc)",
+              "type": "obs",
+              "id": "otherAllergies",
+              "questionOptions": {
+                "concept": "9680037f-ffdd-46d6-9108-e4a38f92db11",
+                "rendering": "text"
+              }
+            },
+            {
+              "label": "Name of Reporter",
+              "type": "obs",
+              "id": "reportName",
+              "questionOptions": {
+                "concept": "86b67565-c33d-4145-8ff3-737f95ccf9d5",
+                "rendering": "text"
+              }
+            },
+            {
+              "label": "Address",
+              "type": "obs",
+              "id": "address1",
+              "questionOptions": {
+                "concept": "162725AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "text"
+              }
+            },
+            {
+              "label": "Profession",
+              "type": "obs",
+              "id": "profession",
+              "questionOptions": {
+                "concept": "91dfcf74-bd9e-43c1-bcd3-707fd0560279",
+                "rendering": "text"
+              }
+            },
+            {
+              "label": "Tel. No/E-mail",
+              "type": "obs",
+              "id": "emailAddress",
+              "questionOptions": {
+                "concept": "dbd98959-ec0b-48ba-b3b6-dfef4d22c5a1",
+                "rendering": "text"
+              }
+            }
+          ]
+        },
+        {
+          "label": "Signature",
+          "questions": [
+            {
+              "label": "Completed by:",
+              "type": "encounterProvider",
+              "required": true,
+              "id": "providerName",
+              "questionOptions": {
+                "rendering": "ui-select-extended"
+              },
+              "validators": []
+            },
+            {
+              "label": "Facility:",
+              "type": "encounterLocation",
+              "required": true,
+              "id": "facilityName",
+              "questionOptions": {
+                "rendering": "ui-select-extended"
+              },
+              "validators": []
+            },
+            {
+              "label": "Encounter Date",
+              "type": "encounterDatetime",
+              "required": true,
+              "id": "signatureDate",
+              "datePickerFormat": "calendar",
+              "questionOptions": {
+                "rendering": "date",
+                "concept": "c26ab267-c014-4bc8-97b1-c6c5b08a2e93"
+              },
+              "validators": [
+                {
+                  "type": "date",
+                  "allowFutureDates": "false"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "description": "Adverse Drug"
+}
