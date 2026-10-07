@@ -74,16 +74,8 @@ class ClientsListView(QWidget):
         
         # Clients table
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels([
-            "PEPFARID", "Full Name", "Phone", "Facility", "Status", "Last Updated"
-        ])
-        self.table.setColumnWidth(0, 120)
-        self.table.setColumnWidth(1, 200)
-        self.table.setColumnWidth(2, 120)
-        self.table.setColumnWidth(3, 150)
-        self.table.setColumnWidth(4, 100)
-        self.table.setColumnWidth(5, 150)
+        # Don't set columns here - they will be set dynamically when data is loaded
+        self.table.setColumnCount(0)
         self.table.itemClicked.connect(self.on_client_selected)
         self.table.setAlternatingRowColors(True)
         layout.addWidget(self.table)
@@ -130,15 +122,24 @@ class ClientsListView(QWidget):
                 for client in clients_db:
                     client_dict = {
                         "id": str(client.id),
-                        "PEPFAR ID": client.pepfar_id or "",
-                        "Full Name": client.full_name or "",
-                        "Phone": client.phone_number or "",
-                        "Email": client.email or "",
-                        "Address": client.address or "",
-                        "Gender": client.gender or "",
-                        "Facility": client.facility_id or "Unknown",
-                        "Status": client.status or "Active",
-                        "Last Updated": client.updated_locally_at.strftime('%Y-%m-%d %H:%M') if client.updated_locally_at else ""
+                        "pepfarId": client.pepfar_id or "",
+                        "fullName": client.full_name or "",
+                        "phone": client.phone_number or "",
+                        "email": client.email or "",
+                        "address": client.address or "",
+                        "gender": client.gender or "",
+                        "dateOfBirth": client.date_of_birth.strftime('%Y-%m-%d') if client.date_of_birth else "",
+                        "weight": str(client.weight) if client.weight else "",
+                        "height": str(client.height) if client.height else "",
+                        "bmi": str(client.bmi) if client.bmi else "",
+                        "facilityId": client.facility_id or "Unknown",
+                        "status": client.status or "Active",
+                        "hivStatus": client.hiv_status or "",
+                        "artStatus": client.art_status or "",
+                        "cd4": str(client.current_cd4) if client.current_cd4 else "",
+                        "viralLoad": str(client.current_viral_load) if client.current_viral_load else "",
+                        "lastVisitDate": client.last_visit_date.strftime('%Y-%m-%d') if client.last_visit_date else "",
+                        "updatedAt": client.updated_locally_at.strftime('%Y-%m-%d %H:%M') if client.updated_locally_at else ""
                     }
                     self.clients.append(client_dict)
                 
@@ -217,15 +218,15 @@ class ClientsListView(QWidget):
         filtered = []
         for client in self.clients:
             # Status filter
-            if status_filter != "All" and client.get("Status") != status_filter:
+            if status_filter != "All" and client.get("status") != status_filter:
                 continue
             
             # Search filter
             if search_text:
                 search_fields = [
-                    client.get("PEPFAR ID", ""),
-                    client.get("Full Name", ""),
-                    client.get("Phone", "")
+                    client.get("pepfarId", ""),
+                    client.get("fullName", ""),
+                    client.get("phone", "")
                 ]
                 if not any(search_text in field.lower() for field in search_fields):
                     continue
