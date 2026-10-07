@@ -42,9 +42,9 @@ class SystemSettingsDialog(QDialog):
         
         # Username
         username_layout = QHBoxLayout()
-        username_layout.addWidget(QLabel("Username:"))
+        username_layout.addWidget(QLabel("Backend Email/Username:"))
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Enter backend username")
+        self.username_input.setPlaceholderText("Use super@compharm.org or superadmin")
         username_layout.addWidget(self.username_input)
         server_layout.addLayout(username_layout)
         

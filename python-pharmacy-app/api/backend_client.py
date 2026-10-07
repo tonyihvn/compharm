@@ -33,12 +33,21 @@ class BackendAPIClient:
             return False
         
         try:
+            # Try to authenticate using the configured credentials
+            # First, try as email (preferred), then as username
+            login_payload = {
+                "password": settings.BACKEND_PASSWORD
+            }
+            
+            # Check if BACKEND_USERNAME looks like an email
+            if "@" in settings.BACKEND_USERNAME:
+                login_payload["email"] = settings.BACKEND_USERNAME
+            else:
+                login_payload["username"] = settings.BACKEND_USERNAME
+            
             response = requests.post(
                 f"{self.base_url}/api/auth/login",
-                json={
-                    "username": settings.BACKEND_USERNAME,
-                    "password": settings.BACKEND_PASSWORD
-                },
+                json=login_payload,
                 timeout=self.timeout
             )
             

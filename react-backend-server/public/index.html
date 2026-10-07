@@ -187,12 +187,19 @@ async function handleLogin(e) {
     const password = document.getElementById('loginPassword').value;
     
     try {
+        console.log('Attempting login with email:', email);
+        console.log('API URL:', API_URL);
+        
         const res = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ email, password })
         });
+        
+        console.log('Response status:', res.status);
         const data = await res.json();
+        console.log('Response data:', data);
         
         if (res.ok && data.token) {
             localStorage.setItem('token', data.token);
@@ -203,7 +210,8 @@ async function handleLogin(e) {
             alert('Login failed: ' + (data.message || 'Unknown error'));
         }
     } catch (e) {
-        alert('Error: ' + e.message);
+        console.error('Login error:', e);
+        alert('Error: ' + e.message + '\nServer URL: ' + API_URL);
     }
 }
 
