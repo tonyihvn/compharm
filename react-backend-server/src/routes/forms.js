@@ -6,8 +6,25 @@ import express from 'express';
 import { sequelize } from '../models/index.js';
 import { authenticate, authorizeAdmin } from '../middleware/auth.js';
 import logger from '../config/logger.js';
+import { randomUUID } from 'crypto';
 
 const router = express.Router();
+
+function getFormName(formData) {
+    return formData?.name || formData?.label || null;
+}
+
+function getFormSections(formData) {
+    if (Array.isArray(formData?.sections)) {
+        return formData.sections;
+    }
+
+    if (Array.isArray(formData?.pages)) {
+        return formData.pages.flatMap((page) => Array.isArray(page?.sections) ? page.sections : []);
+    }
+
+    return [];
+}
 
 // Get all forms
 router.get('/', authenticate, async (req, res) => {
@@ -18,7 +35,7 @@ router.get('/', authenticate, async (req, res) => {
         const where = {};
         if (active) where.is_active = true;
 
-        const forms = await sequelize.models.Form.findAndCountAll({
+        const forms = await sequelize.models.PharmacyForm.findAndCountAll({
             where,
             limit: parseInt(limit),
             offset: parseInt(offset),
@@ -43,7 +60,7 @@ router.get('/:formId', authenticate, async (req, res) => {
     try {
         const { formId } = req.params;
 
-        const form = await sequelize.models.Form.findByPk(formId);
+        const form = await sequelize.models.PharmacyForm.findByPk(formId);
 
         if (!form) {
             return res.status(404).json({ message: 'Form not found' });
@@ -64,18 +81,20 @@ router.post('/upload', authenticate, authorizeAdmin, async (req, res) => {
     try {
         const formData = req.body;
         const { userId } = req.user;
+        const formName = getFormName(formData);
+        const sections = getFormSections(formData);
 
         // Validate form structure
-        if (!formData.name || !formData.sections) {
-            return res.status(400).json({ message: 'Form must have name and sections' });
+        if (!formName || sections.length === 0) {
+            return res.status(400).json({ message: 'Form must have a name and at least one section (directly or under pages)' });
         }
 
         // Create form
-        const form = await sequelize.models.Form.create({
-            form_code: formData.id || `FORM-${Date.now()}`,
-            form_name: formData.name,
+        const form = await sequelize.models.PharmacyForm.create({
+            form_uuid: formData.uuid || formData.id || randomUUID(),
+            form_name: formName,
             description: formData.description,
-            form_schema: JSON.stringify(formData),
+            form_data: formData,
             version: 1,
             created_by: userId,
             is_active: true
@@ -99,7 +118,7 @@ router.put('/:formId', authenticate, authorizeAdmin, async (req, res) => {
         const { formId } = req.params;
         const formData = req.body;
 
-        const form = await sequelize.models.Form.findByPk(formId);
+        const form = await sequelize.models.PharmacyForm.findByPk(formId);
 
         if (!form) {
             return res.status(404).json({ message: 'Form not found' });
@@ -109,9 +128,9 @@ router.put('/:formId', authenticate, authorizeAdmin, async (req, res) => {
         const newVersion = (form.version || 1) + 1;
 
         await form.update({
-            form_name: formData.name || form.form_name,
+            form_name: getFormName(formData) || form.form_name,
             description: formData.description || form.description,
-            form_schema: JSON.stringify(formData),
+            form_data: formData,
             version: newVersion
         });
 
@@ -132,7 +151,7 @@ router.patch('/:formId/deactivate', authenticate, authorizeAdmin, async (req, re
     try {
         const { formId } = req.params;
 
-        const form = await sequelize.models.Form.findByPk(formId);
+        const form = await sequelize.models.PharmacyForm.findByPk(formId);
 
         if (!form) {
             return res.status(404).json({ message: 'Form not found' });
@@ -157,7 +176,7 @@ router.delete('/:formId', authenticate, authorizeAdmin, async (req, res) => {
     try {
         const { formId } = req.params;
 
-        const form = await sequelize.models.Form.findByPk(formId);
+        const form = await sequelize.models.PharmacyForm.findByPk(formId);
 
         if (!form) {
             return res.status(404).json({ message: 'Form not found' });

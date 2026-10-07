@@ -7,8 +7,12 @@ import { sequelize } from '../models/index.js';
 import { authenticate, authorizeAdmin } from '../middleware/auth.js';
 import logger from '../config/logger.js';
 import crypto from 'crypto';
+import multer from 'multer';
+import csv from 'csv-parser';
+import { Readable } from 'stream';
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Get all pharmacies
 router.get('/', authenticate, async (req, res) => {
@@ -102,6 +106,78 @@ router.post('/', authenticate, authorizeAdmin, async (req, res) => {
         }
 
         res.status(500).json({ message: 'Error creating pharmacy' });
+    }
+});
+
+// Bulk upload pharmacies
+router.post('/bulk/upload', authenticate, authorizeAdmin, async (req, res) => {
+    try {
+        const payload = Array.isArray(req.body) ? req.body : req.body?.pharmacies;
+        if (!Array.isArray(payload) || payload.length === 0) {
+            return res.status(400).json({ message: 'Provide a non-empty pharmacies array' });
+        }
+
+        const results = [];
+        let created = 0;
+        let updated = 0;
+        let failed = 0;
+
+        for (const row of payload) {
+            const pharmacyCode = row?.pharmacyCode || row?.pharmacy_code;
+            const pharmacyName = row?.pharmacyName || row?.pharmacy_name;
+
+            if (!pharmacyCode || !pharmacyName) {
+                failed++;
+                results.push({
+                    pharmacyCode: pharmacyCode || null,
+                    status: 'error',
+                    message: 'pharmacyCode/pharmacy_code and pharmacyName/pharmacy_name are required'
+                });
+                continue;
+            }
+
+            try {
+                const existing = await sequelize.models.Pharmacy.findOne({
+                    where: { pharmacy_code: pharmacyCode }
+                });
+
+                const mapped = {
+                    pharmacy_name: pharmacyName,
+                    description: row?.description || null,
+                    address: row?.address || null,
+                    phone: row?.phone || null,
+                    email: row?.email || null,
+                    is_active: row?.is_active !== undefined ? Boolean(row.is_active) : true
+                };
+
+                if (existing) {
+                    await existing.update(mapped);
+                    updated++;
+                    results.push({ pharmacyCode, status: 'updated', pharmacyId: existing.id });
+                } else {
+                    const createdPharmacy = await sequelize.models.Pharmacy.create({
+                        pharmacy_code: pharmacyCode,
+                        ...mapped,
+                        api_key: crypto.randomBytes(32).toString('hex')
+                    });
+                    created++;
+                    results.push({ pharmacyCode, status: 'created', pharmacyId: createdPharmacy.id });
+                }
+            } catch (error) {
+                failed++;
+                results.push({ pharmacyCode, status: 'error', message: error.message });
+            }
+        }
+
+        logger.info(`Pharmacy bulk upload completed: created=${created}, updated=${updated}, failed=${failed}`);
+        res.json({
+            message: 'Pharmacy bulk upload completed',
+            summary: { total: payload.length, created, updated, failed },
+            results
+        });
+    } catch (error) {
+        logger.error('Bulk upload pharmacies error:', error);
+        res.status(500).json({ message: 'Error uploading pharmacies in bulk' });
     }
 });
 
@@ -223,6 +299,109 @@ router.get('/:pharmacyId/stats', authenticate, async (req, res) => {
     } catch (error) {
         logger.error('Get pharmacy stats error:', error);
         res.status(500).json({ message: 'Error retrieving statistics' });
+    }
+});
+
+// CSV file upload for bulk pharmacy import
+router.post('/csv/upload', authenticate, authorizeAdmin, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file provided' });
+        }
+
+        const fileBuffer = req.file.buffer;
+        const results = [];
+        let created = 0;
+        let updated = 0;
+        let failed = 0;
+
+        // Parse CSV from buffer
+        const stream = Readable.from([fileBuffer]);
+        const pharmacyRows = [];
+
+        stream
+            .pipe(csv())
+            .on('data', (row) => {
+                pharmacyRows.push(row);
+            })
+            .on('end', async () => {
+                try {
+                    // Process all rows
+                    for (const row of pharmacyRows) {
+                        const pharmacyCode = row?.pharmacy_code || row?.pharmacyCode;
+                        const pharmacyName = row?.pharmacy_name || row?.pharmacyName;
+
+                        if (!pharmacyCode || !pharmacyName) {
+                            failed++;
+                            results.push({
+                                pharmacyCode: pharmacyCode || null,
+                                status: 'error',
+                                message: 'pharmacy_code and pharmacy_name are required'
+                            });
+                            continue;
+                        }
+
+                        try {
+                            const existing = await sequelize.models.Pharmacy.findOne({
+                                where: { pharmacy_code: pharmacyCode }
+                            });
+
+                            const mapped = {
+                                pharmacy_name: pharmacyName,
+                                description: row?.description || null,
+                                address: row?.address || null,
+                                phone: row?.phone || null,
+                                email: row?.email || null,
+                                is_active: row?.is_active !== undefined ? Boolean(row.is_active === 'true' || row.is_active === '1' || row.is_active === true) : true
+                            };
+
+                            if (existing) {
+                                await existing.update(mapped);
+                                updated++;
+                                results.push({ pharmacyCode, status: 'updated', pharmacyId: existing.id });
+                            } else {
+                                const createdPharmacy = await sequelize.models.Pharmacy.create({
+                                    pharmacy_code: pharmacyCode,
+                                    ...mapped,
+                                    api_key: crypto.randomBytes(32).toString('hex')
+                                });
+                                created++;
+                                results.push({ pharmacyCode, status: 'created', pharmacyId: createdPharmacy.id });
+                            }
+                        } catch (rowError) {
+                            failed++;
+                            results.push({
+                                pharmacyCode,
+                                status: 'error',
+                                message: rowError.message
+                            });
+                        }
+                    }
+
+                    logger.info(`Pharmacy CSV upload completed: created=${created}, updated=${updated}, failed=${failed}`);
+
+                    res.json({
+                        message: 'Pharmacy CSV upload completed',
+                        summary: {
+                            created,
+                            updated,
+                            failed,
+                            total: pharmacyRows.length
+                        },
+                        results
+                    });
+                } catch (error) {
+                    logger.error('CSV processing error:', error);
+                    res.status(500).json({ message: 'Error processing CSV file' });
+                }
+            })
+            .on('error', (error) => {
+                logger.error('CSV parse error:', error);
+                res.status(400).json({ message: 'Invalid CSV format' });
+            });
+    } catch (error) {
+        logger.error('CSV upload error:', error);
+        res.status(500).json({ message: 'Error uploading CSV file' });
     }
 });
 

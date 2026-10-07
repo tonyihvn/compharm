@@ -6,8 +6,12 @@ import express from 'express';
 import { sequelize } from '../models/index.js';
 import { authenticate, authorizeAdmin } from '../middleware/auth.js';
 import logger from '../config/logger.js';
+import multer from 'multer';
+import csv from 'csv-parser';
+import { Readable } from 'stream';
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Get all facilities
 router.get('/', authenticate, async (req, res) => {
@@ -61,7 +65,7 @@ router.get('/:facilityId', authenticate, async (req, res) => {
 // Create facility
 router.post('/', authenticate, authorizeAdmin, async (req, res) => {
     try {
-        const { facilityCode, facilityName, address, phone, email, district, description } = req.body;
+        const { facilityCode, facilityName, address, phone, email, district, description, systemType, system_type } = req.body;
 
         if (!facilityCode || !facilityName) {
             return res.status(400).json({ message: 'Missing required fields' });
@@ -71,6 +75,7 @@ router.post('/', authenticate, authorizeAdmin, async (req, res) => {
             facility_code: facilityCode,
             facility_name: facilityName,
             description,
+            system_type: systemType || system_type || 'openmrs',
             address,
             phone,
             email,
@@ -92,6 +97,79 @@ router.post('/', authenticate, authorizeAdmin, async (req, res) => {
         }
 
         res.status(500).json({ message: 'Error creating facility' });
+    }
+});
+
+// Bulk upload facilities
+router.post('/bulk/upload', authenticate, authorizeAdmin, async (req, res) => {
+    try {
+        const payload = Array.isArray(req.body) ? req.body : req.body?.facilities;
+        if (!Array.isArray(payload) || payload.length === 0) {
+            return res.status(400).json({ message: 'Provide a non-empty facilities array' });
+        }
+
+        const results = [];
+        let created = 0;
+        let updated = 0;
+        let failed = 0;
+
+        for (const row of payload) {
+            const facilityCode = row?.facilityCode || row?.facility_code;
+            const facilityName = row?.facilityName || row?.facility_name;
+
+            if (!facilityCode || !facilityName) {
+                failed++;
+                results.push({
+                    facilityCode: facilityCode || null,
+                    status: 'error',
+                    message: 'facilityCode/facility_code and facilityName/facility_name are required'
+                });
+                continue;
+            }
+
+            try {
+                const existing = await sequelize.models.Facility.findOne({
+                    where: { facility_code: facilityCode }
+                });
+
+                const mapped = {
+                    facility_name: facilityName,
+                    description: row?.description || null,
+                    system_type: row?.systemType || row?.system_type || 'openmrs',
+                    address: row?.address || null,
+                    phone: row?.phone || null,
+                    email: row?.email || null,
+                    district: row?.district || null,
+                    is_active: row?.is_active !== undefined ? Boolean(row.is_active) : true
+                };
+
+                if (existing) {
+                    await existing.update(mapped);
+                    updated++;
+                    results.push({ facilityCode, status: 'updated', facilityId: existing.id });
+                } else {
+                    const createdFacility = await sequelize.models.Facility.create({
+                        facility_code: facilityCode,
+                        ...mapped
+                    });
+                    created++;
+                    results.push({ facilityCode, status: 'created', facilityId: createdFacility.id });
+                }
+            } catch (error) {
+                failed++;
+                results.push({ facilityCode, status: 'error', message: error.message });
+            }
+        }
+
+        logger.info(`Facility bulk upload completed: created=${created}, updated=${updated}, failed=${failed}`);
+        res.json({
+            message: 'Facility bulk upload completed',
+            summary: { total: payload.length, created, updated, failed },
+            results
+        });
+    } catch (error) {
+        logger.error('Bulk upload facilities error:', error);
+        res.status(500).json({ message: 'Error uploading facilities in bulk' });
     }
 });
 
@@ -203,6 +281,109 @@ router.patch('/:facilityId/deactivate', authenticate, authorizeAdmin, async (req
     } catch (error) {
         logger.error('Deactivate facility error:', error);
         res.status(500).json({ message: 'Error deactivating facility' });
+    }
+});
+
+// CSV file upload for bulk facility import
+router.post('/csv/upload', authenticate, authorizeAdmin, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file provided' });
+        }
+
+        const fileBuffer = req.file.buffer;
+        const results = [];
+        let created = 0;
+        let updated = 0;
+        let failed = 0;
+
+        // Parse CSV from buffer
+        const stream = Readable.from([fileBuffer]);
+        const facilityRows = [];
+
+        stream
+            .pipe(csv())
+            .on('data', (row) => {
+                facilityRows.push(row);
+            })
+            .on('end', async () => {
+                try {
+                    // Process all rows
+                    for (const row of facilityRows) {
+                        const facilityCode = row?.facility_code || row?.facilityCode;
+                        const facilityName = row?.facility_name || row?.facilityName;
+
+                        if (!facilityCode || !facilityName) {
+                            failed++;
+                            results.push({
+                                facilityCode: facilityCode || null,
+                                status: 'error',
+                                message: 'facility_code and facility_name are required'
+                            });
+                            continue;
+                        }
+
+                        try {
+                            const existing = await sequelize.models.Facility.findOne({
+                                where: { facility_code: facilityCode }
+                            });
+
+                            const mapped = {
+                                facility_name: facilityName,
+                                description: row?.description || null,
+                                address: row?.address || null,
+                                phone: row?.phone || null,
+                                email: row?.email || null,
+                                facility_type: row?.facility_type || 'clinic',
+                                is_active: row?.is_active !== undefined ? Boolean(row.is_active === 'true' || row.is_active === '1' || row.is_active === true) : true
+                            };
+
+                            if (existing) {
+                                await existing.update(mapped);
+                                updated++;
+                                results.push({ facilityCode, status: 'updated', facilityId: existing.id });
+                            } else {
+                                const createdFacility = await sequelize.models.Facility.create({
+                                    facility_code: facilityCode,
+                                    ...mapped
+                                });
+                                created++;
+                                results.push({ facilityCode, status: 'created', facilityId: createdFacility.id });
+                            }
+                        } catch (rowError) {
+                            failed++;
+                            results.push({
+                                facilityCode,
+                                status: 'error',
+                                message: rowError.message
+                            });
+                        }
+                    }
+
+                    logger.info(`Facility CSV upload completed: created=${created}, updated=${updated}, failed=${failed}`);
+
+                    res.json({
+                        message: 'Facility CSV upload completed',
+                        summary: {
+                            created,
+                            updated,
+                            failed,
+                            total: facilityRows.length
+                        },
+                        results
+                    });
+                } catch (error) {
+                    logger.error('CSV processing error:', error);
+                    res.status(500).json({ message: 'Error processing CSV file' });
+                }
+            })
+            .on('error', (error) => {
+                logger.error('CSV parse error:', error);
+                res.status(400).json({ message: 'Invalid CSV format' });
+            });
+    } catch (error) {
+        logger.error('CSV upload error:', error);
+        res.status(500).json({ message: 'Error uploading CSV file' });
     }
 });
 

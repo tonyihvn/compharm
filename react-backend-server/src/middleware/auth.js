@@ -5,6 +5,29 @@
 import jwt from 'jsonwebtoken';
 import logger from '../config/logger.js';
 
+export const normalizeRole = (role) =>
+    String(role ?? '').trim().toLowerCase().replace(/[\s_-]+/g, '_');
+
+export const isAdminRole = (role) => {
+    const normalizedRole = normalizeRole(role);
+    return ['admin', 'super_admin', 'superadmin', 'administrator', 'system_admin'].includes(normalizedRole);
+};
+
+export const hasRole = (user, allowedRoles) => {
+    if (!user) {
+        return false;
+    }
+
+    const normalizedUserRole = normalizeRole(user.role);
+    const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
+
+    if (normalizedAllowedRoles.includes(normalizedUserRole)) {
+        return true;
+    }
+
+    return user.is_superuser === true && normalizedAllowedRoles.includes('admin');
+};
+
 export const authenticate = (req, res, next) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
@@ -18,7 +41,10 @@ export const authenticate = (req, res, next) => {
             process.env.JWT_SECRET || 'your-secret-key'
         );
 
-        req.user = decoded;
+        req.user = {
+            ...decoded,
+            role: normalizeRole(decoded.role)
+        };
         next();
     } catch (error) {
         logger.error('Authentication error:', error);
@@ -27,35 +53,35 @@ export const authenticate = (req, res, next) => {
 };
 
 export const authorizeAdmin = (req, res, next) => {
-    if (req.user?.role !== 'admin') {
+    if (!isAdminRole(req.user?.role) && req.user?.is_superuser !== true) {
         return res.status(403).json({ message: 'Admin access required' });
     }
     next();
 };
 
 export const authorizeFacility = (req, res, next) => {
-    if (!['facility_staff', 'admin'].includes(req.user?.role)) {
+    if (!hasRole(req.user, ['facility_staff', 'admin'])) {
         return res.status(403).json({ message: 'Facility access required' });
     }
     next();
 };
 
 export const authorizePharmacy = (req, res, next) => {
-    if (!['pharmacy_staff', 'admin'].includes(req.user?.role)) {
+    if (!hasRole(req.user, ['pharmacy_staff', 'admin'])) {
         return res.status(403).json({ message: 'Pharmacy access required' });
     }
     next();
 };
 
 export const authorizeFacilityOrAdmin = (req, res, next) => {
-    if (!['facility_staff', 'admin'].includes(req.user?.role)) {
+    if (!hasRole(req.user, ['facility_staff', 'admin'])) {
         return res.status(403).json({ message: 'Access denied' });
     }
     next();
 };
 
 export const authorizeOpenMRS = (req, res, next) => {
-    if (req.user?.role !== 'openmrs_sync') {
+    if (normalizeRole(req.user?.role) !== 'openmrs_sync') {
         return res.status(403).json({ message: 'OpenMRS access required' });
     }
     next();

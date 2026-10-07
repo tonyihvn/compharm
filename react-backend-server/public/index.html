@@ -112,10 +112,12 @@
 <div id="mainApp" class="container" style="display: none;">
     <div class="sidebar">
         <div class="logo">ComPharm</div>
-        <div class="nav-item active" onclick="showTab('dashboard')">Dashboard</div>
-        <div class="nav-item" onclick="showTab('clients')">Clients</div>
-        <div class="nav-item" onclick="showTab('users')">Users</div>
-        <div class="nav-item" onclick="showTab('fields')">Fields</div>
+        <div class="nav-item active" onclick="showTab('dashboard', this)">Dashboard</div>
+        <div class="nav-item" onclick="showTab('clients', this)">Clients</div>
+        <div class="nav-item" onclick="showTab('users', this)">Users</div>
+        <div class="nav-item" onclick="showTab('pharmacies', this)">Pharmacies</div>
+        <div class="nav-item" onclick="showTab('facilities', this)">Facilities</div>
+        <div class="nav-item" onclick="showTab('fields', this)">Fields</div>
         <button class="logout-btn" onclick="handleLogout()">Logout</button>
     </div>
     
@@ -138,6 +140,10 @@
                     <h3>Pharmacies</h3>
                     <div class="value" id="totalPharmacies">0</div>
                 </div>
+                <div class="stat-card">
+                    <h3>Facilities</h3>
+                    <div class="value" id="totalFacilities">0</div>
+                </div>
             </div>
         </div>
         
@@ -156,6 +162,24 @@
                 <div id="usersList"></div>
             </div>
         </div>
+
+        <div id="pharmacies" class="content-section">
+            <h1>Pharmacies Management</h1>
+            <button class="btn btn-primary" onclick="openAddPharmacyModal()" style="margin-bottom: 20px;">Add Pharmacy</button>
+            <button class="btn btn-secondary" onclick="openBulkUploadPharmaciesModal()" style="margin-bottom: 20px; margin-left: 10px;">Bulk Upload Pharmacies</button>
+            <div class="table-container">
+                <div id="pharmaciesList"></div>
+            </div>
+        </div>
+
+        <div id="facilities" class="content-section">
+            <h1>Facilities Management</h1>
+            <button class="btn btn-primary" onclick="openAddFacilityModal()" style="margin-bottom: 20px;">Add Facility</button>
+            <button class="btn btn-secondary" onclick="openBulkUploadFacilitiesModal()" style="margin-bottom: 20px; margin-left: 10px;">Bulk Upload Facilities</button>
+            <div class="table-container">
+                <div id="facilitiesList"></div>
+            </div>
+        </div>
         
         <div id="fields" class="content-section">
             <h1>Field Management</h1>
@@ -167,16 +191,30 @@
 
 <script>
 const API_URL = 'http://localhost:3001/api';
+let currentUserRole = null;
 
-function showTab(tab) {
+function applyRoleVisibility() {
+    const usersNav = Array.from(document.querySelectorAll('.nav-item'))
+        .find((el) => el.textContent.trim() === 'Users');
+    if (!usersNav) {
+        return;
+    }
+    usersNav.style.display = '';
+}
+
+function showTab(tab, navEl) {
     document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
     document.getElementById(tab).classList.add('active');
     
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    event.target.classList.add('active');
+    if (navEl) {
+        navEl.classList.add('active');
+    }
     
     if (tab === 'clients') loadClients();
     if (tab === 'users') loadUsers();
+    if (tab === 'pharmacies') loadPharmacies();
+    if (tab === 'facilities') loadFacilities();
     if (tab === 'fields') loadFieldManager();
     if (tab === 'dashboard') loadDashboard();
 }
@@ -203,8 +241,11 @@ async function handleLogin(e) {
         
         if (res.ok && data.token) {
             localStorage.setItem('token', data.token);
+            currentUserRole = (data.user?.role || '').toLowerCase() || null;
+            applyRoleVisibility();
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('mainApp').style.display = 'flex';
+            showTab('dashboard', document.querySelector(".nav-item[onclick*=\"dashboard\"]"));
             loadDashboard();
         } else {
             alert('Login failed: ' + (data.message || 'Unknown error'));
@@ -217,8 +258,47 @@ async function handleLogin(e) {
 
 function handleLogout() {
     localStorage.removeItem('token');
+    currentUserRole = null;
+    applyRoleVisibility();
     document.getElementById('loginPage').style.display = 'flex';
     document.getElementById('mainApp').style.display = 'none';
+}
+
+async function initializeSession() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        document.getElementById('loginPage').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        return;
+    }
+
+    try {
+        const verifyRes = await fetch(`${API_URL}/auth/verify`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (!verifyRes.ok) {
+            localStorage.removeItem('token');
+            currentUserRole = null;
+            applyRoleVisibility();
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+            return;
+        }
+
+        const verifyData = await verifyRes.json();
+        currentUserRole = (verifyData?.user?.role || '').toLowerCase() || null;
+        applyRoleVisibility();
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'flex';
+        showTab('dashboard', document.querySelector(".nav-item[onclick*=\"dashboard\"]"));
+        loadDashboard();
+    } catch (e) {
+        console.error('Session initialization error:', e);
+        document.getElementById('loginPage').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+    }
 }
 
 async function loadDashboard() {
@@ -226,8 +306,27 @@ async function loadDashboard() {
         const clientsRes = await fetch(`${API_URL}/clients`, {
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
+        const pharmaciesRes = await fetch(`${API_URL}/pharmacies`, {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const facilitiesRes = await fetch(`${API_URL}/facilities`, {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
         const clientsData = await clientsRes.json();
+        const pharmaciesData = await pharmaciesRes.json();
+        const facilitiesData = await facilitiesRes.json();
         document.getElementById('totalClients').textContent = (clientsData.clients || []).length;
+        if (currentUserRole === 'admin') {
+            const usersRes = await fetch(`${API_URL}/users`, {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+            });
+            const usersData = await usersRes.json();
+            document.getElementById('totalUsers').textContent = usersData.total || (usersData.users || []).length;
+        } else {
+            document.getElementById('totalUsers').textContent = '-';
+        }
+        document.getElementById('totalPharmacies').textContent = pharmaciesData.total || (pharmaciesData.data || []).length;
+        document.getElementById('totalFacilities').textContent = facilitiesData.total || (facilitiesData.data || []).length;
     } catch (e) {
         console.log('Dashboard error:', e);
     }
@@ -415,11 +514,43 @@ function closeDetailModal() {
 }
 
 async function openAddClientModal() {
+    let pharmacies = [];
+    let facilities = [];
+
+    try {
+        const [pharmaciesRes, facilitiesRes] = await Promise.all([
+            fetch(`${API_URL}/pharmacies`, {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+            }),
+            fetch(`${API_URL}/facilities`, {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+            })
+        ]);
+
+        const pharmaciesData = await pharmaciesRes.json();
+        const facilitiesData = await facilitiesRes.json();
+        pharmacies = pharmaciesData.data || [];
+        facilities = facilitiesData.data || [];
+    } catch (e) {
+        showAlert('contentAlert', 'Could not load pharmacy/facility options: ' + e.message, 'error');
+        return;
+    }
+
     let html = '<form id="addClientForm" class="grid-form">';
     html += '<div class="form-group"><label>Name</label><input type="text" id="clientName" required></div>';
-    html += '<div class="form-group"><label>PEPFAR ID</label><input type="text" id="clientPepfarId"></div>';
-    html += '<div class="form-group"><label>Pharmacy Code</label><input type="text" id="clientPharmacyCode"></div>';
-    html += '<div class="form-group"><label>Facility Code</label><input type="text" id="clientFacilityCode"></div>';
+    html += '<div class="form-group"><label>PEPFAR ID</label><input type="text" id="clientPepfarId" required></div>';
+    html += '<div class="form-group"><label>Pharmacy</label><select id="clientPharmacyCode" required>';
+    html += '<option value="">Select Pharmacy</option>';
+    pharmacies.forEach(pharmacy => {
+        html += `<option value="${pharmacy.pharmacy_code}">${pharmacy.pharmacy_name} (${pharmacy.pharmacy_code})</option>`;
+    });
+    html += '</select></div>';
+    html += '<div class="form-group"><label>Facility</label><select id="clientFacilityCode" required>';
+    html += '<option value="">Select Facility</option>';
+    facilities.forEach(facility => {
+        html += `<option value="${facility.facility_code}">${facility.facility_name} (${facility.facility_code})</option>`;
+    });
+    html += '</select></div>';
     html += '</form>';
     
     let modal = document.getElementById('addClientModal');
@@ -446,10 +577,15 @@ async function openAddClientModal() {
 async function handleAddClient() {
     const data = {
         name: document.getElementById('clientName').value,
-        pepfarId: document.getElementById('clientPepfarId').value,
-        pharmacyCode: document.getElementById('clientPharmacyCode').value,
-        facilityCode: document.getElementById('clientFacilityCode').value
+        pepfar_id: document.getElementById('clientPepfarId').value,
+        pharmacy_id: document.getElementById('clientPharmacyCode').value,
+        facility_id: document.getElementById('clientFacilityCode').value
     };
+
+    if (!data.name || !data.pepfar_id || !data.pharmacy_id || !data.facility_id) {
+        showAlert('contentAlert', 'Please fill all required client fields', 'error');
+        return;
+    }
     
     try {
         const res = await fetch(`${API_URL}/clients`, {
@@ -465,6 +601,10 @@ async function handleAddClient() {
             document.getElementById('addClientModal').classList.remove('active');
             showAlert('contentAlert', 'Client added!', 'success');
             loadClients();
+            loadDashboard();
+        } else {
+            const result = await res.json();
+            showAlert('contentAlert', 'Failed to add client: ' + (result.message || result.error || 'Unknown error'), 'error');
         }
     } catch (e) {
         showAlert('contentAlert', 'Error: ' + e.message, 'error');
@@ -474,7 +614,9 @@ async function handleAddClient() {
 async function openAddUserModal() {
     let html = '<form id="addUserForm">';
     html += '<div class="form-group"><label>Email</label><input type="email" id="userEmail" required></div>';
+    html += '<div class="form-group"><label>Password</label><input type="password" id="userPassword" minlength="8" required></div>';
     html += '<div class="form-group"><label>Full Name</label><input type="text" id="userFullName" required></div>';
+    html += '<div class="form-group"><label>Username (optional)</label><input type="text" id="userUsername"></div>';
     html += '<div class="form-group"><label>Role</label><select id="userRole" onchange="updateRoleDependentFields()">';
     html += '<option value="admin">Admin</option><option value="pharmacy_staff">Pharmacy Staff</option><option value="facility_manager">Facility Manager</option></select></div>';
     html += '<div class="form-group hidden" id="pharmacyIdGroup"><label>Pharmacy ID</label><input type="text" id="userPharmacyId"></div>';
@@ -511,15 +653,17 @@ function updateRoleDependentFields() {
 async function handleAddUser() {
     const data = {
         email: document.getElementById('userEmail').value,
+        password: document.getElementById('userPassword').value,
         fullName: document.getElementById('userFullName').value,
+        username: document.getElementById('userUsername').value || undefined,
         role: document.getElementById('userRole').value
     };
     
     if (data.role === 'pharmacy_staff' && document.getElementById('userPharmacyId').value) {
-        data.pharmacyId = parseInt(document.getElementById('userPharmacyId').value);
+        data.pharmacyId = document.getElementById('userPharmacyId').value;
     }
     if (data.role === 'facility_manager' && document.getElementById('userFacilityId').value) {
-        data.facilityId = parseInt(document.getElementById('userFacilityId').value);
+        data.facilityId = document.getElementById('userFacilityId').value;
     }
     
     try {
@@ -532,10 +676,14 @@ async function handleAddUser() {
             body: JSON.stringify(data)
         });
         
+        const result = await res.json();
         if (res.ok) {
             document.getElementById('addUserModal').classList.remove('active');
             showAlert('contentAlert', 'User added!', 'success');
             loadUsers();
+            loadDashboard();
+        } else {
+            showAlert('contentAlert', 'Failed to add user: ' + (result.error || result.message || 'Unknown error'), 'error');
         }
     } catch (e) {
         showAlert('contentAlert', 'Error: ' + e.message, 'error');
@@ -547,6 +695,11 @@ async function loadUsers() {
         const res = await fetch(`${API_URL}/users`, {
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}));
+            document.getElementById('usersList').innerHTML = `<p style="padding: 20px; color: red;">Failed to load users: ${error.message || error.error || 'Unauthorized or server error'}</p>`;
+            return;
+        }
         const data = await res.json();
         const users = data.users || [];
 
@@ -646,22 +799,443 @@ async function deleteUser(userId) {
     }
 }
 
+async function loadPharmacies() {
+    try {
+        const res = await fetch(`${API_URL}/pharmacies`, {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const data = await res.json();
+        const pharmacies = data.data || [];
+
+        if (!pharmacies.length) {
+            document.getElementById('pharmaciesList').innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No pharmacies found</p>';
+            return;
+        }
+
+        let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="background: #667eea; color: white;">';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Code</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Name</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Phone</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Active</th></tr></thead><tbody>';
+
+        pharmacies.forEach((pharmacy, idx) => {
+            const bgColor = idx % 2 === 0 ? '#ffffff' : '#f8f9fa';
+            html += `<tr style="background: ${bgColor}; border-bottom: 1px solid #e0e0e0;">`;
+            html += `<td style="padding: 12px;">${pharmacy.pharmacy_code || '-'}</td>`;
+            html += `<td style="padding: 12px;">${pharmacy.pharmacy_name || '-'}</td>`;
+            html += `<td style="padding: 12px;">${pharmacy.email || '-'}</td>`;
+            html += `<td style="padding: 12px;">${pharmacy.phone || '-'}</td>`;
+            html += `<td style="padding: 12px;"><span style="color: ${pharmacy.is_active ? '#27ae60' : '#e74c3c'};">${pharmacy.is_active ? '✓ Yes' : '✗ No'}</span></td>`;
+            html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+        document.getElementById('pharmaciesList').innerHTML = html;
+    } catch (e) {
+        document.getElementById('pharmaciesList').innerHTML = '<p style="padding: 20px; color: red;">Error: ' + e.message + '</p>';
+    }
+}
+
+function openAddPharmacyModal() {
+    let html = '<form id="addPharmacyForm" class="grid-form">';
+    html += '<div class="form-group"><label>Pharmacy Code</label><input type="text" id="pharmacyCode" required></div>';
+    html += '<div class="form-group"><label>Pharmacy Name</label><input type="text" id="pharmacyName" required></div>';
+    html += '<div class="form-group"><label>Email</label><input type="email" id="pharmacyEmail"></div>';
+    html += '<div class="form-group"><label>Phone</label><input type="text" id="pharmacyPhone"></div>';
+    html += '<div class="form-group" style="grid-column: 1 / -1;"><label>Address</label><input type="text" id="pharmacyAddress"></div>';
+    html += '<div class="form-group" style="grid-column: 1 / -1;"><label>Description</label><input type="text" id="pharmacyDescription"></div>';
+    html += '</form>';
+
+    let modal = document.getElementById('addPharmacyModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'addPharmacyModal';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header"><h2>Add Pharmacy</h2></div>
+            <div class="modal-body">${html}</div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="handleAddPharmacy()">Add</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('addPharmacyModal').classList.remove('active')">Cancel</button>
+            </div>
+        </div>
+    `;
+    modal.classList.add('active');
+}
+
+async function handleAddPharmacy() {
+    const payload = {
+        pharmacyCode: document.getElementById('pharmacyCode').value,
+        pharmacyName: document.getElementById('pharmacyName').value,
+        email: document.getElementById('pharmacyEmail').value || undefined,
+        phone: document.getElementById('pharmacyPhone').value || undefined,
+        address: document.getElementById('pharmacyAddress').value || undefined,
+        description: document.getElementById('pharmacyDescription').value || undefined
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/pharmacies`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('addPharmacyModal').classList.remove('active');
+            showAlert('contentAlert', 'Pharmacy added!', 'success');
+            loadPharmacies();
+            loadDashboard();
+        } else {
+            showAlert('contentAlert', 'Failed to add pharmacy: ' + (data.message || data.error || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showAlert('contentAlert', 'Error: ' + e.message, 'error');
+    }
+}
+
+function openBulkUploadPharmaciesModal() {
+    let html = '<form id="bulkPharmacyForm">';
+    html += '<div class="form-group"><label>Paste JSON array of pharmacies</label>';
+    html += '<textarea id="bulkPharmacyJson" style="width: 100%; min-height: 260px; padding: 10px; font-family: monospace;" placeholder=\'[{"pharmacyCode":"PHARM-001","pharmacyName":"Main Pharmacy","email":"main@example.org"}]\'></textarea></div>';
+    html += '</form>';
+
+    let modal = document.getElementById('bulkPharmacyModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'bulkPharmacyModal';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header"><h2>Bulk Upload Pharmacies</h2></div>
+            <div class="modal-body">${html}</div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="handleBulkUploadPharmacies()">Upload</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('bulkPharmacyModal').classList.remove('active')">Cancel</button>
+            </div>
+        </div>
+    `;
+    modal.classList.add('active');
+}
+
+async function handleBulkUploadPharmacies() {
+    const raw = document.getElementById('bulkPharmacyJson').value;
+    let payload;
+    try {
+        payload = JSON.parse(raw);
+    } catch (e) {
+        showAlert('contentAlert', 'Invalid JSON format for pharmacies', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/pharmacies/bulk/upload`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify({ pharmacies: payload })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('bulkPharmacyModal').classList.remove('active');
+            const summary = data.summary || {};
+            showAlert('contentAlert', `Pharmacy bulk upload complete. Created: ${summary.created || 0}, Updated: ${summary.updated || 0}, Failed: ${summary.failed || 0}`, 'success');
+            loadPharmacies();
+            loadDashboard();
+        } else {
+            showAlert('contentAlert', 'Bulk upload failed: ' + (data.message || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showAlert('contentAlert', 'Error: ' + e.message, 'error');
+    }
+}
+
+async function loadFacilities() {
+    try {
+        const res = await fetch(`${API_URL}/facilities`, {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const data = await res.json();
+        const facilities = data.data || [];
+
+        if (!facilities.length) {
+            document.getElementById('facilitiesList').innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No facilities found</p>';
+            return;
+        }
+
+        let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="background: #667eea; color: white;">';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Code</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Name</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">System Type</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Email</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Phone</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Active</th></tr></thead><tbody>';
+
+        facilities.forEach((facility, idx) => {
+            const bgColor = idx % 2 === 0 ? '#ffffff' : '#f8f9fa';
+            html += `<tr style="background: ${bgColor}; border-bottom: 1px solid #e0e0e0;">`;
+            html += `<td style="padding: 12px;">${facility.facility_code || '-'}</td>`;
+            html += `<td style="padding: 12px;">${facility.facility_name || '-'}</td>`;
+            html += `<td style="padding: 12px;">${facility.system_type || '-'}</td>`;
+            html += `<td style="padding: 12px;">${facility.email || '-'}</td>`;
+            html += `<td style="padding: 12px;">${facility.phone || '-'}</td>`;
+            html += `<td style="padding: 12px;"><span style="color: ${facility.is_active ? '#27ae60' : '#e74c3c'};">${facility.is_active ? '✓ Yes' : '✗ No'}</span></td>`;
+            html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+        document.getElementById('facilitiesList').innerHTML = html;
+    } catch (e) {
+        document.getElementById('facilitiesList').innerHTML = '<p style="padding: 20px; color: red;">Error: ' + e.message + '</p>';
+    }
+}
+
+function openAddFacilityModal() {
+    let html = '<form id="addFacilityForm" class="grid-form">';
+    html += '<div class="form-group"><label>Facility Code</label><input type="text" id="facilityCode" required></div>';
+    html += '<div class="form-group"><label>Facility Name</label><input type="text" id="facilityName" required></div>';
+    html += '<div class="form-group"><label>System Type</label><input type="text" id="facilitySystemType" value="openmrs"></div>';
+    html += '<div class="form-group"><label>Email</label><input type="email" id="facilityEmail"></div>';
+    html += '<div class="form-group"><label>Phone</label><input type="text" id="facilityPhone"></div>';
+    html += '<div class="form-group" style="grid-column: 1 / -1;"><label>Address</label><input type="text" id="facilityAddress"></div>';
+    html += '<div class="form-group" style="grid-column: 1 / -1;"><label>Description</label><input type="text" id="facilityDescription"></div>';
+    html += '</form>';
+
+    let modal = document.getElementById('addFacilityModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'addFacilityModal';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header"><h2>Add Facility</h2></div>
+            <div class="modal-body">${html}</div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="handleAddFacility()">Add</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('addFacilityModal').classList.remove('active')">Cancel</button>
+            </div>
+        </div>
+    `;
+    modal.classList.add('active');
+}
+
+async function handleAddFacility() {
+    const payload = {
+        facilityCode: document.getElementById('facilityCode').value,
+        facilityName: document.getElementById('facilityName').value,
+        address: document.getElementById('facilityAddress').value || undefined,
+        phone: document.getElementById('facilityPhone').value || undefined,
+        email: document.getElementById('facilityEmail').value || undefined,
+        description: document.getElementById('facilityDescription').value || undefined
+    };
+    const systemType = document.getElementById('facilitySystemType').value;
+    if (systemType) {
+        payload.system_type = systemType;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/facilities`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('addFacilityModal').classList.remove('active');
+            showAlert('contentAlert', 'Facility added!', 'success');
+            loadFacilities();
+            loadDashboard();
+        } else {
+            showAlert('contentAlert', 'Failed to add facility: ' + (data.message || data.error || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showAlert('contentAlert', 'Error: ' + e.message, 'error');
+    }
+}
+
+function openBulkUploadFacilitiesModal() {
+    let html = '<form id="bulkFacilityForm">';
+    html += '<div class="form-group"><label>Paste JSON array of facilities</label>';
+    html += '<textarea id="bulkFacilityJson" style="width: 100%; min-height: 260px; padding: 10px; font-family: monospace;" placeholder=\'[{"facilityCode":"FAC-001","facilityName":"General Hospital","systemType":"openmrs"}]\'></textarea></div>';
+    html += '</form>';
+
+    let modal = document.getElementById('bulkFacilityModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'bulkFacilityModal';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header"><h2>Bulk Upload Facilities</h2></div>
+            <div class="modal-body">${html}</div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="handleBulkUploadFacilities()">Upload</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('bulkFacilityModal').classList.remove('active')">Cancel</button>
+            </div>
+        </div>
+    `;
+    modal.classList.add('active');
+}
+
+async function handleBulkUploadFacilities() {
+    const raw = document.getElementById('bulkFacilityJson').value;
+    let payload;
+    try {
+        payload = JSON.parse(raw);
+    } catch (e) {
+        showAlert('contentAlert', 'Invalid JSON format for facilities', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/facilities/bulk/upload`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify({ facilities: payload })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('bulkFacilityModal').classList.remove('active');
+            const summary = data.summary || {};
+            showAlert('contentAlert', `Facility bulk upload complete. Created: ${summary.created || 0}, Updated: ${summary.updated || 0}, Failed: ${summary.failed || 0}`, 'success');
+            loadFacilities();
+            loadDashboard();
+        } else {
+            showAlert('contentAlert', 'Bulk upload failed: ' + (data.message || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showAlert('contentAlert', 'Error: ' + e.message, 'error');
+    }
+}
+
 async function loadFieldManager() {
-    document.getElementById('fieldsList').innerHTML = '<p>Manage client form fields here</p>';
+    try {
+        const res = await fetch(`${API_URL}/fields`, {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const data = await res.json();
+        const fields = data.fields || [];
+
+        if (!fields.length) {
+            document.getElementById('fieldsList').innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No fields configured</p>';
+            return;
+        }
+
+        let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="background: #667eea; color: white;">';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Label</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Field Name</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Type</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Required</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 600;">Order</th>';
+        html += '</tr></thead><tbody>';
+
+        fields.forEach((field, idx) => {
+            const bgColor = idx % 2 === 0 ? '#ffffff' : '#f8f9fa';
+            html += `<tr style="background: ${bgColor}; border-bottom: 1px solid #e0e0e0;">`;
+            html += `<td style="padding: 12px;">${field.name || '-'}</td>`;
+            html += `<td style="padding: 12px;">${field.field_name || '-'}</td>`;
+            html += `<td style="padding: 12px;">${field.field_type || '-'}</td>`;
+            html += `<td style="padding: 12px;">${field.required ? 'Yes' : 'No'}</td>`;
+            html += `<td style="padding: 12px;">${field.order_index ?? '-'}</td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        document.getElementById('fieldsList').innerHTML = html;
+    } catch (e) {
+        document.getElementById('fieldsList').innerHTML = '<p style="padding: 20px; color: red;">Error: ' + e.message + '</p>';
+    }
 }
 
 function openAddFieldModal() {
-    document.getElementById('addFieldModal').classList.add('active');
+    let html = '<form id="addFieldForm" class="grid-form">';
+    html += '<div class="form-group"><label>Label</label><input type="text" id="fieldLabel" required></div>';
+    html += '<div class="form-group"><label>Field Name</label><input type="text" id="fieldName" required></div>';
+    html += '<div class="form-group"><label>Type</label><select id="fieldType">';
+    html += '<option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="email">Email</option><option value="tel">Phone</option><option value="select">Select</option></select></div>';
+    html += '<div class="form-group"><label>Order</label><input type="number" id="fieldOrder" value="999"></div>';
+    html += '<div class="form-group"><label><input type="checkbox" id="fieldRequired"> Required</label></div>';
+    html += '</form>';
+
+    let modal = document.getElementById('addFieldModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'addFieldModal';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header"><h2>Add Field</h2></div>
+            <div class="modal-body">${html}</div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="handleAddField()">Add</button>
+                <button class="btn btn-secondary" onclick="closeAddFieldModal()">Cancel</button>
+            </div>
+        </div>
+    `;
+    modal.classList.add('active');
 }
 
 function closeAddFieldModal() {
     document.getElementById('addFieldModal').classList.remove('active');
 }
 
-async function handleAddField(e) {
-    e.preventDefault();
-    closeAddFieldModal();
-    showAlert('contentAlert', 'Field added!', 'success');
+async function handleAddField() {
+    const payload = {
+        name: document.getElementById('fieldLabel').value,
+        field_name: document.getElementById('fieldName').value,
+        field_type: document.getElementById('fieldType').value,
+        required: document.getElementById('fieldRequired').checked,
+        order_index: parseInt(document.getElementById('fieldOrder').value || '999', 10)
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/fields`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            closeAddFieldModal();
+            showAlert('contentAlert', 'Field added!', 'success');
+            loadFieldManager();
+        } else {
+            showAlert('contentAlert', 'Failed to add field: ' + (data.message || data.error || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showAlert('contentAlert', 'Error: ' + e.message, 'error');
+    }
 }
 
 function showAlert(el, msg, type) {
@@ -669,6 +1243,8 @@ function showAlert(el, msg, type) {
     elem.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
     setTimeout(() => elem.innerHTML = '', 5000);
 }
+
+document.addEventListener('DOMContentLoaded', initializeSession);
 </script>
 </body>
 </html>

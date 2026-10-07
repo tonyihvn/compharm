@@ -17,6 +17,7 @@ import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import clientRoutes from './routes/clients.js';
 import formRoutes from './routes/forms.js';
+import fieldRoutes from './routes/fields.js';
 import submissionRoutes from './routes/submissions.js';
 import pharmacyRoutes from './routes/pharmacies.js';
 import facilityRoutes from './routes/facilities.js';
@@ -28,7 +29,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 // Security middleware
 app.use(helmet({
@@ -85,6 +86,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/forms', formRoutes);
+app.use('/api/fields', fieldRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/pharmacies', pharmacyRoutes);
 app.use('/api/facilities', facilityRoutes);
@@ -141,7 +143,7 @@ async function seedDefaultUsers() {
 
             logger.info('Default super admin user created: super@compharm.org');
         } else {
-            logger.info('Super admin user already exists');
+            logger.info('Super admin user already exists, skipping seed');
         }
     } catch (error) {
         logger.warn('Failed to seed default users:', error.message);
@@ -164,11 +166,21 @@ async function startServer() {
         await seedDefaultUsers();
 
         // Start server
-        app.listen(PORT, () => {
-            logger.info(`Server is running on port ${PORT}`);
-            logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        await new Promise((resolve, reject) => {
+            const server = app.listen(PORT, () => {
+                logger.info(`Server is running on port ${PORT}`);
+                logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+                resolve(server);
+            });
+
+            server.on('error', (error) => {
+                reject(error);
+            });
         });
     } catch (error) {
+        if (error?.code === 'EADDRINUSE') {
+            logger.error(`Port ${PORT} is already in use. Stop the existing process or set a different PORT in react-backend-server/.env`);
+        }
         logger.error('Failed to start server:', error);
         process.exit(1);
     }

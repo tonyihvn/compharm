@@ -121,7 +121,6 @@ class LoginWindow(QWidget):
         """Handle login action"""
         username = self.username_input.text().strip()
         password = self.password_input.text()
-        role = self.role_combo.currentText()
         
         if not username or not password:
             QMessageBox.warning(self, "Input Error", "Please enter username and password")
@@ -133,6 +132,11 @@ class LoginWindow(QWidget):
             user_data = authenticate_user(session, username, password)
             
             if user_data:
+                # User role comes from the database, not the combo box
+                actual_role = user_data.get('role', 'unknown')
+                logger.info(f"User authenticated: {username}, Role: {actual_role}, "
+                           f"Superuser: {user_data.get('is_superuser', False)}")
+                
                 # Try to get auth token from central server
                 auth_token = self.get_server_auth_token(username, password)
                 
@@ -145,9 +149,9 @@ class LoginWindow(QWidget):
                 
                 # Save credentials if remember me is checked
                 if self.remember_me.isChecked():
-                    self.save_credentials(username, password, role)
+                    self.save_credentials(username, password, actual_role)
                 
-                # Emit login success with user data
+                # Emit login success with user data (includes role from database)
                 logger.info(f"User authenticated locally: {username}")
                 self.login_successful.emit(user_data)
                 return

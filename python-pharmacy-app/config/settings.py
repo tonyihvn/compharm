@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     PHARMACY_NAME: str = "Local Pharmacy"
     
     # API Configuration
-    CENTRAL_SERVER_URL: str = "http://localhost:3001"
+    CENTRAL_SERVER_URL: str = "http://127.0.0.1:3001"
     API_TIMEOUT: int = 30
     
     # Backend Server Credentials (NEW)

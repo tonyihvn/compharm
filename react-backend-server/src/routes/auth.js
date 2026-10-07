@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { sequelize } from '../models/index.js';
 import logger from '../config/logger.js';
+import { normalizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
 

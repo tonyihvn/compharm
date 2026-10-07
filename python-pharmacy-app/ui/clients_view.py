@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QThread
 from PyQt6.QtGui import QFont, QColor
 import json
+import requests
 from database.models import Client
 from api.backend_client import get_api_client, ensure_authenticated
 
@@ -109,8 +110,8 @@ class ClientsListView(QWidget):
             
             session = self.db_manager.get_session()
             try:
-                # Load all active clients from local database
-                clients_db = session.query(Client).filter_by(status='active').all()
+                # Load all clients from local database (not just 'active')
+                clients_db = session.query(Client).all()
                 
                 if not clients_db:
                     self.clients = []
@@ -285,30 +286,37 @@ class ClientsListView(QWidget):
         progress.show()
         
         try:
-            # Get auth token from environment or settings
-            import os
-            token = os.environ.get('AUTH_TOKEN', '')
-            if not token:
-                QMessageBox.warning(self, "Error", "Authentication token not available. Please login first.")
+            # Get auth token from API client
+            try:
+                api_client = get_api_client()
+                if not api_client or not api_client.authenticated:
+                    raise ValueError("Not authenticated. Please login first.")
+                token = api_client.auth_token
+            except Exception as e:
+                QMessageBox.warning(self, "Authentication Error", f"Failed to get auth token: {str(e)}")
                 progress.close()
                 return
             
-            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            import requests
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
             
             # Get configured pharmacy code from settings
             from config.settings import settings
             pharmacy_code = settings.PHARMACY_ID
             
-            # Use the pharmacyCode filter to get clients for this pharmacy
+            # Use the pharmacyId filter to get clients for this pharmacy
             response = requests.get(
-                f"{self.api_url}/api/clients?pharmacyCode={pharmacy_code}",
+                f"{self.api_url}/api/clients?pharmacyId={pharmacy_code}",
                 headers=headers,
                 timeout=30
             )
             
             if response.status_code == 200:
                 data = response.json()
-                clients = data.get("clients", [])
+                clients = data.get("data", data.get("clients", []))
                 
                 if not clients:
                     QMessageBox.information(self, "No Clients", "No clients found for this pharmacy")
@@ -320,25 +328,32 @@ class ClientsListView(QWidget):
                     session = self.db_manager.get_session()
                     try:
                         for client_data in clients:
-                            # Check if client already exists
-                            existing = session.query(Client).filter_by(
-                                id=client_data.get('id')
-                            ).first()
-                            
-                            if not existing:
-                                client = Client(
-                                    id=client_data.get('id'),
-                                    pepfar_id=client_data.get('pepfarId'),
-                                    full_name=client_data.get('name'),
-                                    phone_number=client_data.get('phone'),
-                                    email=client_data.get('email'),
-                                    address=client_data.get('address'),
-                                    gender=client_data.get('gender'),
-                                    facility_id=client_data.get('facilityCode'),
-                                    status='active'
-                                )
-                                session.add(client)
-                        
+                            pepfar_id = client_data.get('pepfarId') or client_data.get('pepfar_id') or client_data.get('id')
+                            if not pepfar_id:
+                                continue
+
+                            existing = session.query(Client).filter_by(pepfar_id=pepfar_id).first()
+                            if existing:
+                                continue
+
+                            facility_id = client_data.get('facilityId') or client_data.get('facilityCode') or 'Unknown'
+                            pharmacy_id = client_data.get('pharmacyId') or client_data.get('pharmacyCode') or settings.PHARMACY_ID
+
+                            client = Client(
+                                pepfar_id=str(pepfar_id),
+                                full_name=client_data.get('fullName') or client_data.get('name') or 'Unknown Client',
+                                phone_number=client_data.get('phone'),
+                                email=client_data.get('email'),
+                                address=client_data.get('address'),
+                                gender=client_data.get('gender'),
+                                facility_id=str(facility_id),
+                                pharmacy_id=str(pharmacy_id),
+                                status='active',
+                                additional_data=client_data,
+                                server_client_id=str(client_data.get('id')) if client_data.get('id') is not None else None
+                            )
+                            session.add(client)
+
                         session.commit()
                         self.load_clients()
                         QMessageBox.information(self, "Success", f"Downloaded {len(clients)} clients successfully")
@@ -350,7 +365,10 @@ class ClientsListView(QWidget):
                 else:
                     QMessageBox.warning(self, "Error", "Database manager not available")
             else:
-                error_msg = response.json().get("message", "Unknown error")
+                try:
+                    error_msg = response.json().get("message", response.text)
+                except:
+                    error_msg = response.text
                 QMessageBox.warning(self, "Error", f"Failed to download clients: {error_msg}")
         
         except Exception as e:
@@ -358,4 +376,5 @@ class ClientsListView(QWidget):
         
         finally:
             progress.close()
+
 

@@ -12,7 +12,7 @@ from PyQt6.QtCore import Qt
 
 from config.settings import Settings
 from ui.login_window import LoginWindow
-from ui.main_window import MainWindow
+from ui.modern_main_window import ModernMainWindow
 from database.db_manager import DatabaseManager
 
 logger = None
@@ -81,11 +81,13 @@ def main():
         def on_login_success(user_data):
             """Handle successful login"""
             logger.info(f"User logged in: {user_data.get('email', 'unknown')}")
+            logger.info(f"User role: {user_data.get('role', 'unknown')}, is_superuser: {user_data.get('is_superuser', False)}")
             login_window.close()
             
             # Create main window with user data
-            main_window = MainWindow(db_manager, settings)
+            main_window = ModernMainWindow(db_manager, settings)
             main_window.current_user = user_data
+            main_window.update_user_info()
             
             # Set auth token on admin panel if available
             if 'token' in user_data:
@@ -95,9 +97,6 @@ def main():
             
             # Setup sync worker after login
             main_window.setup_sync_worker()
-            
-            # Don't auto-load clients - let user click the load button
-            # main_window.show_client_list()
             
             main_window_ref[0] = main_window
         

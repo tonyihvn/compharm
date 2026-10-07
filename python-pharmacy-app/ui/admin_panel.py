@@ -33,17 +33,23 @@ class AdminPanel(QWidget):
         self.init_ui()
     
     def get_auth_token(self):
-        """Get authentication token"""
-        if not self.auth_token:
-            # Try to get from environment or settings
-            import os
-            self.auth_token = os.environ.get('AUTH_TOKEN', '')
+        """Get authentication token from backend API client"""
+        try:
+            # Get the authenticated API client which already has a valid token
+            api_client = get_api_client()
+            if api_client and api_client.authenticated and api_client.auth_token:
+                return api_client.auth_token
             
-            # If not available, prompt user to login or return empty
-            if not self.auth_token:
-                # For now, return empty - will fail gracefully
-                logger.warning("No auth token available")
-        return self.auth_token
+            # Fallback: try to re-authenticate
+            if api_client:
+                if api_client.authenticate():
+                    return api_client.auth_token
+            
+            logger.error("Unable to obtain authentication token")
+            raise ValueError("Authentication token not available. Please login again.")
+        except Exception as e:
+            logger.error(f"Error getting auth token: {str(e)}")
+            raise
     
     def set_auth_token(self, token):
         """Set authentication token"""
@@ -394,13 +400,30 @@ class AdminPanel(QWidget):
         """Load list of users"""
         self.users_list.clear()
         try:
-            response = requests.get(f"{self.api_url}/users/list", timeout=10)
+            token = self.get_auth_token()
+            if not token:
+                raise ValueError("Authentication token not available. Please login again.")
+
+            headers = {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+            response = requests.get(f"{self.api_url}/api/users", headers=headers, timeout=10)
             if response.status_code == 200:
-                users = response.json().get("data", [])
+                payload = response.json()
+                users = payload.get("users", payload.get("data", []))
                 for user in users:
                     item = QListWidgetItem(f"{user.get('username')} ({user.get('role')})")
                     item.setData(Qt.ItemDataRole.UserRole, user.get("id"))
                     self.users_list.addItem(item)
+            else:
+                error_msg = response.text
+                try:
+                    body = response.json()
+                    error_msg = body.get("message") or body.get("error") or response.text
+                except Exception:
+                    pass
+                raise ValueError(f"Server returned {response.status_code}: {error_msg}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to load users: {str(e)}")
     
@@ -689,3 +712,4 @@ class AdminPanel(QWidget):
         """Close admin panel"""
         self.close_requested.emit()
         self.close()
+

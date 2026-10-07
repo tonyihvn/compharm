@@ -182,6 +182,46 @@ Client.init({
     ]
 });
 
+// ClientField model
+class ClientField extends Model { }
+ClientField.init({
+    id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+    },
+    name: {
+        type: DataTypes.STRING(255),
+        allowNull: false
+    },
+    field_name: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        unique: true
+    },
+    field_type: {
+        type: DataTypes.STRING(50),
+        allowNull: false
+    },
+    required: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    order_index: {
+        type: DataTypes.INTEGER,
+        defaultValue: 999
+    }
+}, {
+    sequelize,
+    modelName: 'ClientField',
+    tableName: 'client_fields',
+    timestamps: true,
+    indexes: [
+        { fields: ['field_name'] },
+        { fields: ['order_index'] }
+    ]
+});
+
 // PharmacyForm model
 class PharmacyForm extends Model { }
 PharmacyForm.init({
@@ -369,6 +409,7 @@ export {
     Pharmacy,
     Facility,
     Client,
+    ClientField,
     PharmacyForm,
     FormSubmission,
     SyncLog,

@@ -216,6 +216,8 @@ npm run dev
 
 # Or start production server
 npm start
+
+# If port 3001 is already in use, set a different PORT in react-backend-server/.env (for example 3002)
 ```
 
 #### 3. OpenMRS Sync Module
