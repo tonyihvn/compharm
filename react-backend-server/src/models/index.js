@@ -2,40 +2,11 @@
  * Sequelize models for the pharmacy sync system
  */
 
-import { Sequelize, DataTypes, Model } from 'sequelize';
+import { DataTypes, Model } from 'sequelize';
 import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { sequelize } from '../config/database.js';
 
 dotenv.config();
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Initialize Sequelize - use SQLite for development (independent operation)
-// To use MySQL, set DB_TYPE=mysql in .env and ensure MySQL is running
-const sequelize = process.env.DB_TYPE === 'mysql'
-    ? new Sequelize({
-        dialect: 'mysql',
-        host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 3306,
-        database: process.env.DB_NAME || 'pharmacy_sync',
-        username: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || 'root',
-        logging: process.env.NODE_ENV === 'development' ? console.log : false,
-        define: {
-            timestamps: true,
-            underscored: true
-        }
-    })
-    : new Sequelize({
-        dialect: 'sqlite',
-        storage: path.join(__dirname, '../../pharmacy_sync_backend.db'),
-        logging: process.env.NODE_ENV === 'development' ? console.log : false,
-        define: {
-            timestamps: true,
-            underscored: true
-        }
-    });
 
 // User model
 class User extends Model { }
@@ -333,9 +304,10 @@ SyncLog.init({
     modelName: 'SyncLog',
     tableName: 'sync_logs',
     timestamps: true,
+    underscored: false,
     indexes: [
         { fields: ['status'] },
-        { fields: ['created_at'] }
+        { fields: ['createdAt'] }
     ]
 });
 
@@ -366,10 +338,11 @@ AuditLog.init({
     modelName: 'AuditLog',
     tableName: 'audit_logs',
     timestamps: true,
+    underscored: false,
     indexes: [
         { fields: ['action'] },
         { fields: ['entity_type'] },
-        { fields: ['created_at'] }
+        { fields: ['createdAt'] }
     ]
 });
 

@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComPharm - Pharmacy Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 900px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            overflow: hidden;
+        }
+
+        .login-section {
+            padding: 40px;
+            background: white;
+        }
+
+        .dashboard-section {
+            padding: 40px;
+            background: #f8f9fa;
+            display: none;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+
+        .dashboard-section.active {
+            display: block;
+        }
+
+        .login-section.hidden {
+            display: none;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .alert-success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+
+        .alert-info {
+            background: #eef;
+            color: #33c;
+            border: 1px solid #ccf;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            margin-bottom: 20px;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+
+        .user-info {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .user-info p {
+            color: #666;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .client-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            position: relative;
+        }
+
+        .client-item h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .client-item p {
+            color: #666;
+            font-size: 13px;
+            margin: 3px 0;
+        }
+
+        .client-item .client-id {
+            font-family: monospace;
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        .client-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .client-actions button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-edit {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #5568d3;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: #666;
+            border: none;
+            padding: 12px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .login-section, .dashboard-section {
+                padding: 30px;
+            }
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-left: 8px;
+            border: 2px solid white;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login Section -->
+        <div class="login-section" id="loginSection">
+            <h1>Welcome</h1>
+            <p class="subtitle">ComPharm Management System</p>
+
+            <div id="loginAlert"></div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required placeholder="super@compharm.org">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter password">
+                </div>
+
+                <button type="submit" id="loginBtn">Login</button>
+
+                <div style="text-align: center; margin-top: 15px; color: #666; font-size: 13px;">
+                    <p>Default credentials:</p>
+                    <p>Email: super@compharm.org</p>
+                    <p>Password: @@ComPharm22</p>
+                </div>
+            </form>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="dashboard-section" id="dashboardSection">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>Dashboard</h1>
+                <button class="logout-btn" onclick="handleLogout()" style="width: auto; padding: 8px 16px;">Logout</button>
+            </div>
+
+            <div class="user-info">
+                <p><strong>User:</strong> <span id="currentUser"></span></p>
+                <p><strong>Role:</strong> <span id="currentRole"></span></p>
+            </div>
+
+            <div id="dashboardAlert"></div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('create-client')">Create Client</button>
+                <button class="tab-btn" onclick="switchTab('create-user')">Create User</button>
+                <button class="tab-btn" onclick="switchTab('clients-list')">Clients List</button>
+            </div>
+
+            <!-- Create Client Tab -->
+            <div id="create-client" class="tab-content active">
+                <h2>Create New Client</h2>
+                <form id="clientForm" onsubmit="handleCreateClient(event)">
+                    <div class="form-group">
+                        <label for="clientName">Client Name <span style="color: red;">*</span></label>
+                        <input type="text" id="clientName" name="clientName" required>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="pepfarId">PEPFAR ID <span style="color: red;">*</span></label>
+                            <input type="text" id="pepfarId" name="pepfarId" required placeholder="e.g., PEPFAR-001">
+                        </div>
+                        <div class="form-group">
+                            <label for="facilityId">Facility ID <span style="color: red;">*</span></label>
+                            <input type="text" id="facilityId" name="facilityId" required placeholder="e.g., FAC-001">
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="pharmacyId">Pharmacy ID <span style="color: red;">*</span></label>
+                            <input type="text" id="pharmacyId" name="pharmacyId" required placeholder="e.g., PHARM-001">
+                        </div>
+                        <div class="form-group">
+                            <label for="clientAge">Age</label>
+                            <input type="number" id="clientAge" name="clientAge" min="0" max="150">
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="clientGender">Gender</label>
+                            <select id="clientGender" name="clientGender">
+                                <option value="">Select Gender</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="clientPhone">Phone Number</label>
+                            <input type="tel" id="clientPhone" name="clientPhone">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientAddress">Address</label>
+                        <input type="text" id="clientAddress" name="clientAddress">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientEmail">Email</label>
+                        <input type="email" id="clientEmail" name="clientEmail">
+                    </div>
+
+                    <button type="submit" id="createClientBtn">Create Client</button>
+                </form>
+            </div>
+
+            <!-- Create User Tab -->
+            <div id="create-user" class="tab-content">
+                <h2>Create New User</h2>
+                <form id="userForm" onsubmit="handleCreateUser(event)">
+                    <div class="form-group">
+                        <label for="newUsername">Username <span style="color: red;">*</span></label>
+                        <input type="text" id="newUsername" name="username" required>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="newEmail">Email <span style="color: red;">*</span></label>
+                            <input type="email" id="newEmail" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">Password <span style="color: red;">*</span></label>
+                            <input type="password" id="newPassword" name="password" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fullName">Full Name <span style="color: red;">*</span></label>
+                        <input type="text" id="fullName" name="full_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="userRole">Role <span style="color: red;">*</span></label>
+                        <select id="userRole" name="role" required onchange="updateRoleDependentFields()">
+                            <option value="">Select Role</option>
+                            <option value="pharmacy_staff">Pharmacy Staff</option>
+                            <option value="facility_manager">Facility Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group" id="pharmacyIdGroup" style="display: none;">
+                            <label for="userPharmacyId">Pharmacy ID <span style="color: red;">*</span></label>
+                            <input type="text" id="userPharmacyId" name="pharmacy_id" placeholder="e.g., PHARM-IKOYI-001">
+                        </div>
+                        <div class="form-group" id="facilityIdGroup" style="display: none;">
+                            <label for="userFacilityId">Facility ID <span style="color: red;">*</span></label>
+                            <input type="text" id="userFacilityId" name="facility_id" placeholder="e.g., FAC-LAGOS-001">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="createUserBtn">Create User</button>
+                </form>
+            </div>
+
+            <!-- Clients List Tab -->
+            <div id="clients-list" class="tab-content">
+                <h2>Clients List</h2>
+                <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                    <button onclick="loadClients()" style="flex: 0;">Refresh List</button>
+                    <select id="filterStatus" onchange="loadClients()" style="flex: 0; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div id="clientsList" style="display: grid; gap: 15px;"></div>
+            </div>
+        </div>
+
+        <!-- Edit Client Modal -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Edit Client</h2>
+                    <button class="modal-close" onclick="closeEditModal()">×</button>
+                </div>
+                <form id="editClientForm" onsubmit="saveClientChanges(event)">
+                    <input type="hidden" id="editClientId">
+                    
+                    <div class="form-group">
+                        <label for="editClientName">Client Name <span style="color: red;">*</span></label>
+                        <input type="text" id="editClientName" required>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editPepfarId">PEPFAR ID <span style="color: red;">*</span></label>
+                            <input type="text" id="editPepfarId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editFacilityId">Facility ID <span style="color: red;">*</span></label>
+                            <input type="text" id="editFacilityId" required>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editPharmacyId">Pharmacy ID <span style="color: red;">*</span></label>
+                            <input type="text" id="editPharmacyId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editClientAge">Age</label>
+                            <input type="number" id="editClientAge" min="0" max="150">
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editClientGender">Gender</label>
+                            <select id="editClientGender">
+                                <option value="">Select Gender</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editClientPhone">Phone Number</label>
+                            <input type="tel" id="editClientPhone">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editClientAddress">Address</label>
+                        <input type="text" id="editClientAddress">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editClientEmail">Email</label>
+                        <input type="email" id="editClientEmail">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" onclick="closeEditModal()" style="background: #999;">Cancel</button>
+                        <button type="submit">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api';
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+
+        if (authToken) {
+            showDashboard();
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const loginBtn = document.getElementById('loginBtn');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            loginBtn.classList.add('loading');
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    showAlert('loginAlert', 'Login successful!', 'success');
+                    setTimeout(() => showDashboard(), 500);
+                } else {
+                    showAlert('loginAlert', data.message || 'Login failed', 'error');
+                }
+            } catch (error) {
+                showAlert('loginAlert', 'Network error: ' + error.message, 'error');
+            } finally {
+                loginBtn.classList.remove('loading');
+            }
+        }
+
+        async function handleCreateClient(event) {
+            event.preventDefault();
+            const btn = document.getElementById('createClientBtn');
+            btn.classList.add('loading');
+
+            const clientData = {
+                name: document.getElementById('clientName').value,
+                pepfar_id: document.getElementById('pepfarId').value,
+                facility_id: document.getElementById('facilityId').value,
+                pharmacy_id: document.getElementById('pharmacyId').value,
+                age: document.getElementById('clientAge').value || null,
+                gender: document.getElementById('clientGender').value || null,
+                phone: document.getElementById('clientPhone').value,
+                email: document.getElementById('clientEmail').value,
+                address: document.getElementById('clientAddress').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/clients`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(clientData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('dashboardAlert', 'Client created successfully!', 'success');
+                    document.getElementById('clientForm').reset();
+                } else {
+                    showAlert('dashboardAlert', data.message || 'Failed to create client', 'error');
+                }
+            } catch (error) {
+                showAlert('dashboardAlert', 'Error: ' + error.message, 'error');
+            } finally {
+                btn.classList.remove('loading');
+            }
+        }
+
+        async function handleCreateUser(event) {
+            event.preventDefault();
+            const btn = document.getElementById('createUserBtn');
+            btn.classList.add('loading');
+
+            const role = document.getElementById('userRole').value;
+            const userData = {
+                username: document.getElementById('newUsername').value,
+                email: document.getElementById('newEmail').value,
+                password: document.getElementById('newPassword').value,
+                full_name: document.getElementById('fullName').value,
+                role: role
+            };
+
+            // Add pharmacy_id or facility_id based on role
+            if (role === 'pharmacy_staff') {
+                userData.pharmacy_id = document.getElementById('userPharmacyId').value;
+                if (!userData.pharmacy_id) {
+                    showAlert('dashboardAlert', 'Pharmacy ID is required for Pharmacy Staff', 'error');
+                    btn.classList.remove('loading');
+                    return;
+                }
+            } else if (role === 'facility_manager') {
+                userData.facility_id = document.getElementById('userFacilityId').value;
+                if (!userData.facility_id) {
+                    showAlert('dashboardAlert', 'Facility ID is required for Facility Manager', 'error');
+                    btn.classList.remove('loading');
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/auth/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('dashboardAlert', 'User created successfully!', 'success');
+                    document.getElementById('userForm').reset();
+                } else {
+                    showAlert('dashboardAlert', data.message || 'Failed to create user', 'error');
+                }
+            } catch (error) {
+                showAlert('dashboardAlert', 'Error: ' + error.message, 'error');
+            } finally {
+                btn.classList.remove('loading');
+            }
+        }
+
+        async function loadClients() {
+            try {
+                let url = `${API_URL}/clients`;
+                const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                
+                // Filter by pharmacy or facility based on user role
+                if (user.role === 'pharmacy_staff' && user.pharmacyId) {
+                    url += `?pharmacyCode=${encodeURIComponent(user.pharmacyId)}`;
+                } else if (user.role === 'facility_manager' && user.facilityId) {
+                    url += `?facilityId=${encodeURIComponent(user.facilityId)}`;
+                }
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const clientsList = document.getElementById('clientsList');
+                    
+                    if (data.clients && data.clients.length > 0) {
+                        clientsList.innerHTML = data.clients.map(client => `
+                            <div class="client-item">
+                                <h3>${client.name || 'N/A'}</h3>
+                                <p><strong>PEPFAR ID:</strong> ${client.pepfarId || 'N/A'}</p>
+                                <p><strong>Facility:</strong> ${client.facilityCode || client.facilityId || 'N/A'}</p>
+                                <p><strong>Pharmacy:</strong> ${client.pharmacyCode || client.pharmacyId || 'N/A'}</p>
+                                <p><strong>Age:</strong> ${client.age || 'N/A'}</p>
+                                <p><strong>Gender:</strong> ${client.gender || 'N/A'}</p>
+                                <p><strong>Phone:</strong> ${client.phone || 'N/A'}</p>
+                                <p><strong>Email:</strong> ${client.email || 'N/A'}</p>
+                                <p><strong>Address:</strong> ${client.address || 'N/A'}</p>
+                                <div class="client-id">ID: ${client.id}</div>
+                                <div class="client-actions">
+                                    <button class="btn-edit" onclick="openEditModal('${client.id}')">Edit</button>
+                                    <button class="btn-delete" onclick="deleteClient('${client.id}', '${client.name}')">Delete</button>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        clientsList.innerHTML = '<p style="color: #999;">No clients found</p>';
+                    }
+                } else {
+                    showAlert('dashboardAlert', 'Failed to load clients', 'error');
+                }
+            } catch (error) {
+                showAlert('dashboardAlert', 'Error loading clients: ' + error.message, 'error');
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'clients-list') {
+                loadClients();
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.add('active');
+
+            const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            document.getElementById('currentUser').textContent = user.email || 'Unknown';
+            document.getElementById('currentRole').textContent = user.role || 'Unknown';
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            authToken = null;
+            currentUser = null;
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.remove('active');
+            document.getElementById('loginForm').reset();
+            showAlert('loginAlert', 'Logged out successfully', 'success');
+        }
+
+        function showAlert(elementId, message, type) {
+            const alertEl = document.getElementById(elementId);
+            alertEl.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                if (alertEl.querySelector('.alert')) {
+                    alertEl.innerHTML = '';
+                }
+            }, 5000);
+        }
+
+        function updateRoleDependentFields() {
+            const role = document.getElementById('userRole').value;
+            const pharmacyGroup = document.getElementById('pharmacyIdGroup');
+            const facilityGroup = document.getElementById('facilityIdGroup');
+            
+            // Reset visibility
+            pharmacyGroup.style.display = 'none';
+            facilityGroup.style.display = 'none';
+            
+            // Show relevant fields based on role
+            if (role === 'pharmacy_staff') {
+                pharmacyGroup.style.display = 'block';
+                document.getElementById('userPharmacyId').required = true;
+                document.getElementById('userFacilityId').required = false;
+            } else if (role === 'facility_manager') {
+                facilityGroup.style.display = 'block';
+                document.getElementById('userFacilityId').required = true;
+                document.getElementById('userPharmacyId').required = false;
+            }
+        }
+
+        function openEditModal(clientId) {
+            // Fetch the client data
+            fetch(`${API_URL}/clients/${clientId}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.client) {
+                    const client = data.client;
+                    document.getElementById('editClientId').value = client.id;
+                    document.getElementById('editClientName').value = client.name || '';
+                    document.getElementById('editPepfarId').value = client.pepfarId || '';
+                    document.getElementById('editFacilityId').value = client.facilityCode || client.facilityId || '';
+                    document.getElementById('editPharmacyId').value = client.pharmacyCode || client.pharmacyId || '';
+                    document.getElementById('editClientAge').value = client.age || '';
+                    document.getElementById('editClientGender').value = client.gender || '';
+                    document.getElementById('editClientPhone').value = client.phone || '';
+                    document.getElementById('editClientEmail').value = client.email || '';
+                    document.getElementById('editClientAddress').value = client.address || '';
+                    
+                    document.getElementById('editModal').classList.add('active');
+                }
+            })
+            .catch(error => showAlert('dashboardAlert', 'Error loading client: ' + error.message, 'error'));
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        async function saveClientChanges(event) {
+            event.preventDefault();
+            const clientId = document.getElementById('editClientId').value;
+            const btn = event.target.querySelector('button[type="submit"]');
+            btn.classList.add('loading');
+
+            const clientData = {
+                name: document.getElementById('editClientName').value,
+                pepfar_id: document.getElementById('editPepfarId').value,
+                facility_id: document.getElementById('editFacilityId').value,
+                pharmacy_id: document.getElementById('editPharmacyId').value,
+                age: document.getElementById('editClientAge').value || null,
+                gender: document.getElementById('editClientGender').value || null,
+                phone: document.getElementById('editClientPhone').value,
+                email: document.getElementById('editClientEmail').value,
+                address: document.getElementById('editClientAddress').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/clients/${clientId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(clientData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('dashboardAlert', 'Client updated successfully!', 'success');
+                    closeEditModal();
+                    loadClients();
+                } else {
+                    showAlert('dashboardAlert', data.message || 'Failed to update client', 'error');
+                }
+            } catch (error) {
+                showAlert('dashboardAlert', 'Error: ' + error.message, 'error');
+            } finally {
+                btn.classList.remove('loading');
+            }
+        }
+
+        async function deleteClient(clientId, clientName) {
+            if (!confirm(`Are you sure you want to delete ${clientName}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/clients/${clientId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('dashboardAlert', 'Client deleted successfully!', 'success');
+                    loadClients();
+                } else {
+                    showAlert('dashboardAlert', data.message || 'Failed to delete client', 'error');
+                }
+            } catch (error) {
+                showAlert('dashboardAlert', 'Error: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

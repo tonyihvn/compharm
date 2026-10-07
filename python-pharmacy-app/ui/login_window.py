@@ -133,6 +133,16 @@ class LoginWindow(QWidget):
             user_data = authenticate_user(session, username, password)
             
             if user_data:
+                # Try to get auth token from central server
+                auth_token = self.get_server_auth_token(username, password)
+                
+                # Store auth token in environment for use by other components
+                import os
+                if auth_token:
+                    os.environ['AUTH_TOKEN'] = auth_token
+                    user_data['token'] = auth_token
+                    logger.info(f"Auth token obtained from server")
+                
                 # Save credentials if remember me is checked
                 if self.remember_me.isChecked():
                     self.save_credentials(username, password, role)
@@ -152,6 +162,26 @@ class LoginWindow(QWidget):
             QMessageBox.critical(self, "Error", f"Login error: {str(e)}")
         finally:
             session.close()
+    
+    def get_server_auth_token(self, username, password):
+        """Get authentication token from central server"""
+        try:
+            response = requests.post(
+                f"{self.api_url}/api/auth/login",
+                json={"email": username, "password": password},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("token")
+            else:
+                logger.warning(f"Server authentication failed: {response.status_code}")
+                return None
+        except Exception as e:
+            logger.warning(f"Could not authenticate with server: {str(e)}")
+            # Offline mode - continue with local auth only
+            return None
     
     def save_credentials(self, username, password, role):
         """Save credentials locally (encrypted in production)"""

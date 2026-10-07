@@ -86,6 +86,11 @@ def main():
             # Create main window with user data
             main_window = MainWindow(db_manager, settings)
             main_window.current_user = user_data
+            
+            # Set auth token on admin panel if available
+            if 'token' in user_data:
+                main_window.admin_panel.set_auth_token(user_data['token'])
+            
             main_window.show()
             
             # Setup sync worker after login

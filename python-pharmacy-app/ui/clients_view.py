@@ -7,9 +7,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QThread
 from PyQt6.QtGui import QFont, QColor
-import requests
 import json
 from database.models import Client
+from api.backend_client import get_api_client, ensure_authenticated
 
 
 class ClientsListView(QWidget):
@@ -121,22 +121,26 @@ class ClientsListView(QWidget):
                 clients_db = session.query(Client).filter_by(status='active').all()
                 
                 if not clients_db:
-                    QMessageBox.information(self, "No Clients", 
-                                          "No clients found locally. Use 'Download New Clients' to sync from server.")
+                    self.clients = []
+                    self.display_clients([])
                     return
                 
                 # Convert ORM objects to dictionaries for display
                 self.clients = []
                 for client in clients_db:
-                    self.clients.append({
-                        "id": client.id,
-                        "pepfarId": client.pepfar_id,
-                        "fullName": client.full_name,
-                        "phone": client.phone_number or "",
-                        "facility": client.facility_id or "Unknown",
-                        "status": client.status,
-                        "updatedAt": client.updated_locally_at.strftime('%Y-%m-%d %H:%M') if client.updated_locally_at else ""
-                    })
+                    client_dict = {
+                        "id": str(client.id),
+                        "PEPFAR ID": client.pepfar_id or "",
+                        "Full Name": client.full_name or "",
+                        "Phone": client.phone_number or "",
+                        "Email": client.email or "",
+                        "Address": client.address or "",
+                        "Gender": client.gender or "",
+                        "Facility": client.facility_id or "Unknown",
+                        "Status": client.status or "Active",
+                        "Last Updated": client.updated_locally_at.strftime('%Y-%m-%d %H:%M') if client.updated_locally_at else ""
+                    }
+                    self.clients.append(client_dict)
                 
                 self.display_clients(self.clients)
                 
@@ -147,26 +151,63 @@ class ClientsListView(QWidget):
             QMessageBox.critical(self, "Error", f"Error loading clients: {str(e)}")
     
     def display_clients(self, clients):
-        """Display clients in table"""
+        """Display clients in table with dynamically generated headers"""
+        if not clients:
+            self.table.setRowCount(0)
+            return
+        
+        # Get all unique keys from all clients
+        all_keys = set()
+        for client in clients:
+            all_keys.update(client.keys())
+        
+        # Define preferred column order
+        preferred_order = ['pepfarId', 'fullName', 'phone', 'facility', 'status', 'updatedAt']
+        
+        # Sort keys: preferred first, then alphabetically
+        sorted_keys = []
+        for key in preferred_order:
+            if key in all_keys:
+                sorted_keys.append(key)
+                all_keys.discard(key)
+        sorted_keys.extend(sorted(all_keys))
+        
+        # Set up table with dynamic columns
+        self.table.setColumnCount(len(sorted_keys))
+        
+        # Create human-readable headers
+        headers = []
+        for key in sorted_keys:
+            # Convert camelCase to Title Case
+            header = ''.join([' ' + c if c.isupper() else c for c in key]).strip()
+            headers.append(header.replace('Pepfar', 'PEPFAR').replace('Id', 'ID'))
+        
+        self.table.setHorizontalHeaderLabels(headers)
+        
+        # Adjust column widths
+        for i in range(len(sorted_keys)):
+            self.table.setColumnWidth(i, 150)
+        
+        # Populate table with data
         self.table.setRowCount(len(clients))
         
         for row, client in enumerate(clients):
-            self.table.setItem(row, 0, QTableWidgetItem(client.get("pepfarId", "")))
-            self.table.setItem(row, 1, QTableWidgetItem(client.get("fullName", "")))
-            self.table.setItem(row, 2, QTableWidgetItem(client.get("phone", "")))
-            self.table.setItem(row, 3, QTableWidgetItem(client.get("facility", "")))
-            
-            status = client.get("status", "Active")
-            status_item = QTableWidgetItem(status)
-            if status == "Active":
-                status_item.setForeground(QColor("green"))
-            elif status == "Inactive":
-                status_item.setForeground(QColor("red"))
-            else:
-                status_item.setForeground(QColor("orange"))
-            self.table.setItem(row, 4, status_item)
-            
-            self.table.setItem(row, 5, QTableWidgetItem(client.get("updatedAt", "")))
+            for col, key in enumerate(sorted_keys):
+                value = client.get(key, '')
+                # Handle None values
+                if value is None:
+                    value = ''
+                self.table.setItem(row, col, QTableWidgetItem(str(value)))
+                
+                # Color code status column
+                if key == 'status' and col < self.table.columnCount():
+                    item = self.table.item(row, col)
+                    if str(value) == 'Active':
+                        item.setForeground(QColor("green"))
+                    elif str(value) == 'Inactive':
+                        item.setForeground(QColor("red"))
+                    else:
+                        item.setForeground(QColor("orange"))
     
     def filter_clients(self):
         """Filter clients based on search and status"""
@@ -176,15 +217,15 @@ class ClientsListView(QWidget):
         filtered = []
         for client in self.clients:
             # Status filter
-            if status_filter != "All" and client.get("status") != status_filter:
+            if status_filter != "All" and client.get("Status") != status_filter:
                 continue
             
             # Search filter
             if search_text:
                 search_fields = [
-                    client.get("pepfarId", ""),
-                    client.get("fullName", ""),
-                    client.get("phone", "")
+                    client.get("PEPFAR ID", ""),
+                    client.get("Full Name", ""),
+                    client.get("Phone", "")
                 ]
                 if not any(search_text in field.lower() for field in search_fields):
                     continue
@@ -243,19 +284,77 @@ class ClientsListView(QWidget):
         progress.show()
         
         try:
-            response = requests.post(
-                f"{self.api_url}/clients/sync",
+            # Get auth token from environment or settings
+            import os
+            token = os.environ.get('AUTH_TOKEN', '')
+            if not token:
+                QMessageBox.warning(self, "Error", "Authentication token not available. Please login first.")
+                progress.close()
+                return
+            
+            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            
+            # Get configured pharmacy code from settings
+            from config.settings import settings
+            pharmacy_code = settings.PHARMACY_ID
+            
+            # Use the pharmacyCode filter to get clients for this pharmacy
+            response = requests.get(
+                f"{self.api_url}/api/clients?pharmacyCode={pharmacy_code}",
+                headers=headers,
                 timeout=30
             )
             
             if response.status_code == 200:
-                self.load_clients()
-                QMessageBox.information(self, "Success", "Clients downloaded successfully")
+                data = response.json()
+                clients = data.get("clients", [])
+                
+                if not clients:
+                    QMessageBox.information(self, "No Clients", "No clients found for this pharmacy")
+                    progress.close()
+                    return
+                
+                # Save to local database
+                if self.db_manager:
+                    session = self.db_manager.get_session()
+                    try:
+                        for client_data in clients:
+                            # Check if client already exists
+                            existing = session.query(Client).filter_by(
+                                id=client_data.get('id')
+                            ).first()
+                            
+                            if not existing:
+                                client = Client(
+                                    id=client_data.get('id'),
+                                    pepfar_id=client_data.get('pepfarId'),
+                                    full_name=client_data.get('name'),
+                                    phone_number=client_data.get('phone'),
+                                    email=client_data.get('email'),
+                                    address=client_data.get('address'),
+                                    gender=client_data.get('gender'),
+                                    facility_id=client_data.get('facilityCode'),
+                                    status='active'
+                                )
+                                session.add(client)
+                        
+                        session.commit()
+                        self.load_clients()
+                        QMessageBox.information(self, "Success", f"Downloaded {len(clients)} clients successfully")
+                    except Exception as e:
+                        session.rollback()
+                        QMessageBox.critical(self, "Database Error", f"Failed to save clients: {str(e)}")
+                    finally:
+                        session.close()
+                else:
+                    QMessageBox.warning(self, "Error", "Database manager not available")
             else:
-                QMessageBox.warning(self, "Error", "Failed to download clients")
+                error_msg = response.json().get("message", "Unknown error")
+                QMessageBox.warning(self, "Error", f"Failed to download clients: {error_msg}")
         
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Download error: {str(e)}")
         
         finally:
             progress.close()
+

@@ -215,11 +215,12 @@ class FormView(QWidget):
     def collect_form_data(self):
         """Collect all form data from widgets"""
         data = {
-            "formId": self.form_definition.get("id"),
-            "clientId": self.client_data.get("id"),
-            "pepfarId": self.client_data.get("pepfarId"),
+            "form_id": self.form_definition.get("id"),
+            "client_id": self.client_data.get("id"),
+            "pepfar_id": self.client_data.get("pepfarId"),
+            "pharmacy_client_id": self.client_data.get("pharmacyClientId") or self.client_data.get("id"),
             "timestamp": str(QDate.currentDate()),
-            "fields": {}
+            "form_data": {}
         }
         
         for field_id, field_info in self.widgets_map.items():
@@ -243,7 +244,7 @@ class FormView(QWidget):
             if field_info["required"] and not value:
                 raise ValueError(f"Required field '{field_id}' is empty")
             
-            data["fields"][field_id] = value
+            data["form_data"][field_id] = value
         
         return data
     
@@ -253,16 +254,23 @@ class FormView(QWidget):
             data = self.collect_form_data()
             data["status"] = "draft"
             
+            # Get auth token
+            import os
+            token = os.environ.get('AUTH_TOKEN', '')
+            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            
             response = requests.post(
-                f"{self.api_url}/forms/save-draft",
+                f"{self.api_url}/api/submissions",
                 json=data,
+                headers=headers,
                 timeout=10
             )
             
-            if response.status_code == 200:
+            if response.status_code in [200, 201]:
                 QMessageBox.information(self, "Success", "Form saved as draft")
             else:
-                QMessageBox.warning(self, "Error", "Failed to save draft")
+                error_msg = response.json().get("message", "Failed to save draft")
+                QMessageBox.warning(self, "Error", error_msg)
         
         except ValueError as ve:
             QMessageBox.warning(self, "Validation Error", str(ve))
@@ -275,13 +283,19 @@ class FormView(QWidget):
             data = self.collect_form_data()
             data["status"] = "submitted"
             
+            # Get auth token
+            import os
+            token = os.environ.get('AUTH_TOKEN', '')
+            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            
             response = requests.post(
-                f"{self.api_url}/forms/submit",
+                f"{self.api_url}/api/submissions",
                 json=data,
+                headers=headers,
                 timeout=10
             )
             
-            if response.status_code == 200 or response.status_code == 201:
+            if response.status_code in [200, 201]:
                 QMessageBox.information(self, "Success", "Form submitted successfully")
                 self.form_submitted.emit(data)
                 self.close()

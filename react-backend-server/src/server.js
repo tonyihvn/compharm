@@ -8,10 +8,13 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import 'express-async-errors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import logger from './config/logger.js';
 import { sequelize } from './models/index.js';
 import errorHandler from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
 import clientRoutes from './routes/clients.js';
 import formRoutes from './routes/forms.js';
 import submissionRoutes from './routes/submissions.js';
@@ -21,11 +24,24 @@ import syncRoutes from './routes/sync.js';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrcAttr: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:', 'https:'],
+        }
+    }
+}));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -52,6 +68,9 @@ app.use((req, res, next) => {
     next();
 });
 
+// Serve static files
+app.use(express.static(path.join(__dirname, '../public')));
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({
@@ -63,6 +82,7 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/submissions', submissionRoutes);
@@ -70,7 +90,20 @@ app.use('/api/pharmacies', pharmacyRoutes);
 app.use('/api/facilities', facilityRoutes);
 app.use('/api/sync', syncRoutes);
 
-// 404 handler
+// Serve index.html for all non-API routes (SPA fallback)
+app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api/')) {
+        res.sendFile(path.join(__dirname, '../public/index.html'));
+    } else {
+        res.status(404).json({
+            error: 'Not Found',
+            path: req.path,
+            method: req.method
+        });
+    }
+});
+
+// 404 handler (fallback)
 app.use((req, res) => {
     res.status(404).json({
         error: 'Not Found',
@@ -123,7 +156,8 @@ async function startServer() {
         logger.info('Database connection established');
 
         // Sync models with database
-        await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
+        // Use force: true for fresh database to avoid schema mismatch issues
+        await sequelize.sync({ force: process.env.NODE_ENV === 'development' && process.env.FORCE_SYNC === 'true' });
         logger.info('Database models synchronized');
 
         // Seed default super admin user

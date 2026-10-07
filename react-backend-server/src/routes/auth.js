@@ -107,7 +107,9 @@ router.post('/login', async (req, res) => {
                 username: user.username,
                 email: user.email,
                 role: user.role,
-                fullName: user.full_name
+                fullName: user.full_name,
+                pharmacyId: user.pharmacy_id,
+                facilityId: user.facility_id
             }
         });
     } catch (error) {

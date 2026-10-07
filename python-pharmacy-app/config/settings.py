@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     CENTRAL_SERVER_URL: str = "http://localhost:3001"
     API_TIMEOUT: int = 30
     
+    # Backend Server Credentials (NEW)
+    BACKEND_USERNAME: str = ""
+    BACKEND_PASSWORD: str = ""
+    
     # Sync Configuration
     AUTO_SYNC_ENABLED: bool = True
     SYNC_INTERVAL: int = 5  # minutes
@@ -90,3 +94,4 @@ settings = Settings()
 
 # Create upload folder if it doesn't exist
 Path(settings.UPLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
+
