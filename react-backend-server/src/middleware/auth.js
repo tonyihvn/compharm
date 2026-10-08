@@ -53,7 +53,12 @@ export const authenticate = (req, res, next) => {
 };
 
 export const authorizeAdmin = (req, res, next) => {
-    if (!isAdminRole(req.user?.role) && req.user?.is_superuser !== true) {
+    // Check if user is admin or superuser
+    const isAdmin = isAdminRole(req.user?.role);
+    const isSuperuser = req.user?.is_superuser === true || req.user?.is_superuser === 'true';
+    
+    if (!isAdmin && !isSuperuser) {
+        logger.error(`Admin access denied for user ${req.user?.userId} with role ${req.user?.role} and is_superuser ${req.user?.is_superuser}`);
         return res.status(403).json({ message: 'Admin access required' });
     }
     next();

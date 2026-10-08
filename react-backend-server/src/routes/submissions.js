@@ -9,15 +9,108 @@ import logger from '../config/logger.js';
 
 const router = express.Router();
 
+// Get all submissions (with pagination and filtering)
+router.get('/', authenticate, async (req, res) => {
+    try {
+        const { page = 1, limit = 20, status } = req.query;
+        const offset = (page - 1) * limit;
+
+        const where = {};
+        if (status) where.status = status;
+
+        const submissions = await sequelize.models.FormSubmission.findAndCountAll({
+            where,
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            message: 'Submissions retrieved successfully',
+            submissions: submissions.rows.map(s => ({
+                id: s.id,
+                form_name: s.form_name || 'Unknown',
+                form_id: s.form_id,
+                client_id: s.client_id,
+                client_name: s.client_name,
+                facility_name: s.facility_name || s.facility_id,
+                submitted_by: s.submitted_by,
+                status: s.status,
+                createdAt: s.createdAt,
+                updatedAt: s.updatedAt
+            })),
+            total: submissions.count,
+            page: parseInt(page),
+            pages: Math.ceil(submissions.count / limit)
+        });
+    } catch (error) {
+        logger.error('Get submissions error:', error);
+        res.status(500).json({ message: 'Error retrieving submissions' });
+    }
+});
+
 // Submit form
 router.post('/submit', authenticate, async (req, res) => {
     try {
         const submissionData = req.body;
-        const { userId, pharmacyId } = req.user;
+        const { userId, pharmacyId, role } = req.user;
 
         // Validate required fields
         if (!submissionData.formId || !submissionData.clientId) {
             return res.status(400).json({ message: 'Missing formId or clientId' });
+        }
+
+        // Check field-level permissions
+        const fields = submissionData.fields || {};
+        const formPermissions = await sequelize.models.FormFieldPermission.findAll({
+            where: { form_id: submissionData.formId, is_active: true }
+        });
+
+        // Build a permission map
+        const permissionMap = {};
+        for (const perm of formPermissions) {
+            permissionMap[perm.field_name] = {
+                allowRead: perm.allow_read,
+                allowEdit: perm.allow_edit,
+                readOnlyInApp: perm.read_only_in_app,
+                hiddenInApp: perm.hidden_in_app,
+                roleRestrictions: perm.role_restrictions ? JSON.parse(perm.role_restrictions) : []
+            };
+        }
+
+        // Validate field permissions
+        const restrictedFieldEdits = [];
+        for (const [fieldName, fieldValue] of Object.entries(fields)) {
+            if (fieldName === 'id' || fieldName === 'uuid') continue; // Skip metadata
+
+            const perm = permissionMap[fieldName];
+            if (perm) {
+                // Check if user's role is allowed
+                if (perm.roleRestrictions && perm.roleRestrictions.length > 0 && !perm.roleRestrictions.includes(role)) {
+                    restrictedFieldEdits.push({
+                        field: fieldName,
+                        reason: `Field requires one of these roles: ${perm.roleRestrictions.join(', ')}`
+                    });
+                    continue;
+                }
+
+                // Check if field can be edited
+                if (!perm.allowEdit && !perm.readOnlyInApp) {
+                    restrictedFieldEdits.push({
+                        field: fieldName,
+                        reason: 'Field is not editable in pharmacy app'
+                    });
+                }
+            }
+        }
+
+        // If there are restricted field edits, return 403
+        if (restrictedFieldEdits.length > 0) {
+            logger.warn(`Permission denied for user ${userId} editing restricted fields: ${restrictedFieldEdits.map(r => r.field).join(', ')}`);
+            return res.status(403).json({
+                message: 'Permission denied: Cannot edit one or more restricted fields',
+                restrictedFields: restrictedFieldEdits
+            });
         }
 
         // Create submission record
@@ -26,7 +119,7 @@ router.post('/submit', authenticate, async (req, res) => {
             client_id: submissionData.clientId,
             pharmacy_id: pharmacyId,
             submitted_by: userId,
-            submission_data: JSON.stringify(submissionData.fields || {}),
+            submission_data: JSON.stringify(fields),
             status: 'submitted',
             submitted_at: new Date()
         });

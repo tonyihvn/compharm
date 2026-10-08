@@ -87,7 +87,8 @@ router.post('/login', async (req, res) => {
                 userId: user.id,
                 username: user.username,
                 email: user.email,
-                role: user.role,
+                role: user.role || 'pharmacy_staff',
+                is_superuser: user.is_superuser === true || user.is_superuser === 1,
                 pharmacyId: user.pharmacy_id,
                 facilityId: user.facility_id
             },
@@ -159,6 +160,7 @@ router.post('/refresh', (req, res) => {
                 username: decoded.username,
                 email: decoded.email,
                 role: decoded.role,
+                is_superuser: decoded.is_superuser === true || decoded.is_superuser === 'true',
                 pharmacyId: decoded.pharmacyId,
                 facilityId: decoded.facilityId
             },

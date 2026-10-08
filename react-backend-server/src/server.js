@@ -138,12 +138,19 @@ async function seedDefaultUsers() {
                 password_hash: hashedPassword,
                 full_name: 'System Administrator',
                 role: 'admin',
+                is_superuser: true,
                 is_active: true
             });
 
             logger.info('Default super admin user created: super@compharm.org');
         } else {
-            logger.info('Super admin user already exists, skipping seed');
+            // Ensure existing super admin has is_superuser flag set
+            if (!superAdminExists.is_superuser) {
+                await superAdminExists.update({ is_superuser: true });
+                logger.info('Updated existing super admin user with is_superuser flag');
+            } else {
+                logger.info('Super admin user already exists, skipping seed');
+            }
         }
     } catch (error) {
         logger.warn('Failed to seed default users:', error.message);

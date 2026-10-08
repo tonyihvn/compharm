@@ -45,6 +45,10 @@ User.init({
         type: DataTypes.BOOLEAN,
         defaultValue: true
     },
+    is_superuser: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
     last_login: DataTypes.DATE
 }, {
     sequelize,
@@ -386,6 +390,73 @@ AuditLog.init({
     ]
 });
 
+// FormFieldPermission model for field-level access control
+class FormFieldPermission extends Model { }
+FormFieldPermission.init({
+    id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+    },
+    form_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: 'pharmacy_forms', key: 'id' }
+    },
+    field_name: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        comment: 'Name of the form field (e.g., "patient_id", "dosage")'
+    },
+    field_path: {
+        type: DataTypes.STRING(500),
+        comment: 'Full path to nested field if applicable (e.g., "sections[0].questions[1]")'
+    },
+    allow_read: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        comment: 'Whether pharmacy app can read this field'
+    },
+    allow_edit: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Whether pharmacy app can edit this field'
+    },
+    read_only_in_app: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'If true, field is visible but cannot be edited in app'
+    },
+    hidden_in_app: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'If true, field is not visible in pharmacy app'
+    },
+    role_restrictions: {
+        type: DataTypes.JSON,
+        comment: 'Array of roles that can access this field. Empty means all roles.'
+    },
+    description: DataTypes.TEXT,
+    created_by: {
+        type: DataTypes.UUID,
+        references: { model: 'users', key: 'id' }
+    },
+    is_active: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    }
+}, {
+    sequelize,
+    modelName: 'FormFieldPermission',
+    tableName: 'form_field_permissions',
+    timestamps: true,
+    indexes: [
+        { fields: ['form_id'] },
+        { fields: ['form_id', 'field_name'] },
+        { fields: ['is_active'] }
+    ]
+});
+
 // Associations
 User.hasMany(PharmacyForm, { foreignKey: 'created_by' });
 User.hasMany(FormSubmission, { foreignKey: 'submitted_by' });
@@ -402,6 +473,11 @@ Pharmacy.hasMany(Client, { foreignKey: 'pharmacy_id' });
 Client.belongsTo(Facility, { foreignKey: 'facility_id' });
 Client.belongsTo(Pharmacy, { foreignKey: 'pharmacy_id' });
 
+// FormFieldPermission associations
+PharmacyForm.hasMany(FormFieldPermission, { foreignKey: 'form_id' });
+FormFieldPermission.belongsTo(PharmacyForm, { foreignKey: 'form_id' });
+FormFieldPermission.belongsTo(User, { foreignKey: 'created_by' });
+
 // Export sequelize and all models
 export {
     sequelize,
@@ -413,5 +489,6 @@ export {
     PharmacyForm,
     FormSubmission,
     SyncLog,
-    AuditLog
+    AuditLog,
+    FormFieldPermission
 };

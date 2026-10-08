@@ -76,6 +76,28 @@ router.get('/:formId', authenticate, async (req, res) => {
     }
 });
 
+// Download form as JSON file
+router.get('/:formId/download', authenticate, async (req, res) => {
+    try {
+        const { formId } = req.params;
+
+        const form = await sequelize.models.PharmacyForm.findByPk(formId);
+
+        if (!form) {
+            return res.status(404).json({ message: 'Form not found' });
+        }
+
+        // Send form data as JSON file download
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${form.form_name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json"`);
+        
+        res.send(JSON.stringify(form.form_data, null, 2));
+    } catch (error) {
+        logger.error('Download form error:', error);
+        res.status(500).json({ message: 'Error downloading form' });
+    }
+});
+
 // Upload/Create new form
 router.post('/upload', authenticate, authorizeAdmin, async (req, res) => {
     try {
@@ -220,6 +242,149 @@ router.get('/:formId/submissions', authenticate, async (req, res) => {
     } catch (error) {
         logger.error('Get submissions error:', error);
         res.status(500).json({ message: 'Error retrieving submissions' });
+    }
+});
+
+// Get field permissions for a form
+router.get('/:formId/permissions', authenticate, async (req, res) => {
+    try {
+        const { formId } = req.params;
+
+        const permissions = await sequelize.models.FormFieldPermission.findAll({
+            where: { form_id: formId, is_active: true },
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            message: 'Field permissions retrieved successfully',
+            data: permissions,
+            total: permissions.length
+        });
+    } catch (error) {
+        logger.error('Get field permissions error:', error);
+        res.status(500).json({ message: 'Error retrieving field permissions' });
+    }
+});
+
+// Set field permission for a form
+router.post('/:formId/permissions', authenticate, authorizeAdmin, async (req, res) => {
+    try {
+        const { formId } = req.params;
+        const { fieldName, fieldPath, allowRead, allowEdit, readOnlyInApp, hiddenInApp, roleRestrictions, description } = req.body;
+        const { userId } = req.user;
+
+        if (!fieldName) {
+            return res.status(400).json({ message: 'Field name is required' });
+        }
+
+        // Check if form exists
+        const form = await sequelize.models.PharmacyForm.findByPk(formId);
+        if (!form) {
+            return res.status(404).json({ message: 'Form not found' });
+        }
+
+        // Check if permission already exists
+        const existing = await sequelize.models.FormFieldPermission.findOne({
+            where: { form_id: formId, field_name: fieldName }
+        });
+
+        if (existing) {
+            // Update existing
+            await existing.update({
+                allow_read: allowRead ?? existing.allow_read,
+                allow_edit: allowEdit ?? existing.allow_edit,
+                read_only_in_app: readOnlyInApp ?? existing.read_only_in_app,
+                hidden_in_app: hiddenInApp ?? existing.hidden_in_app,
+                role_restrictions: roleRestrictions ?? existing.role_restrictions,
+                description
+            });
+
+            logger.info(`Field permission updated: ${formId} - ${fieldName}`);
+
+            return res.json({
+                message: 'Field permission updated successfully',
+                data: existing
+            });
+        }
+
+        // Create new permission
+        const permission = await sequelize.models.FormFieldPermission.create({
+            form_id: formId,
+            field_name: fieldName,
+            field_path: fieldPath,
+            allow_read: allowRead ?? true,
+            allow_edit: allowEdit ?? false,
+            read_only_in_app: readOnlyInApp ?? false,
+            hidden_in_app: hiddenInApp ?? false,
+            role_restrictions: roleRestrictions,
+            description,
+            created_by: userId
+        });
+
+        logger.info(`Field permission created: ${formId} - ${fieldName}`);
+
+        res.status(201).json({
+            message: 'Field permission created successfully',
+            data: permission
+        });
+    } catch (error) {
+        logger.error('Create field permission error:', error);
+        res.status(500).json({ message: 'Error creating field permission' });
+    }
+});
+
+// Update field permission
+router.put('/:formId/permissions/:permissionId', authenticate, authorizeAdmin, async (req, res) => {
+    try {
+        const { permissionId } = req.params;
+        const { allowRead, allowEdit, readOnlyInApp, hiddenInApp, roleRestrictions, description } = req.body;
+
+        const permission = await sequelize.models.FormFieldPermission.findByPk(permissionId);
+
+        if (!permission) {
+            return res.status(404).json({ message: 'Permission not found' });
+        }
+
+        await permission.update({
+            allow_read: allowRead ?? permission.allow_read,
+            allow_edit: allowEdit ?? permission.allow_edit,
+            read_only_in_app: readOnlyInApp ?? permission.read_only_in_app,
+            hidden_in_app: hiddenInApp ?? permission.hidden_in_app,
+            role_restrictions: roleRestrictions ?? permission.role_restrictions,
+            description: description ?? permission.description
+        });
+
+        logger.info(`Field permission updated: ${permissionId}`);
+
+        res.json({
+            message: 'Field permission updated successfully',
+            data: permission
+        });
+    } catch (error) {
+        logger.error('Update field permission error:', error);
+        res.status(500).json({ message: 'Error updating field permission' });
+    }
+});
+
+// Delete field permission
+router.delete('/:formId/permissions/:permissionId', authenticate, authorizeAdmin, async (req, res) => {
+    try {
+        const { permissionId } = req.params;
+
+        const permission = await sequelize.models.FormFieldPermission.findByPk(permissionId);
+
+        if (!permission) {
+            return res.status(404).json({ message: 'Permission not found' });
+        }
+
+        await permission.destroy();
+
+        logger.info(`Field permission deleted: ${permissionId}`);
+
+        res.json({ message: 'Field permission deleted successfully' });
+    } catch (error) {
+        logger.error('Delete field permission error:', error);
+        res.status(500).json({ message: 'Error deleting field permission' });
     }
 });
 
