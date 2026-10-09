@@ -13,7 +13,7 @@ import json
 class ClientDetailsView(QWidget):
     """View for displaying detailed client information"""
     
-    form_requested = pyqtSignal(dict)  # Emit when form is requested
+    form_requested = pyqtSignal(dict)
     close_requested = pyqtSignal()
     
     def __init__(self, client_data):
@@ -22,7 +22,7 @@ class ClientDetailsView(QWidget):
         self.init_ui()
     
     def init_ui(self):
-        """Initialize UI components"""
+        """Initialize UI components with dynamic data display"""
         layout = QVBoxLayout()
         
         # Title with client info
@@ -36,33 +36,21 @@ class ClientDetailsView(QWidget):
         title_layout.addStretch()
         layout.addLayout(title_layout)
         
-        # Tabs for different sections
+        # Create tabs
         tabs = QTabWidget()
         
-        # Personal Information Tab
-        personal_tab = self.create_personal_info_tab()
-        tabs.addTab(personal_tab, "Personal Information")
+        # All Details Tab (dynamic)
+        details_tab = self.create_all_details_tab()
+        tabs.addTab(details_tab, "All Details")
         
-        # Contact Information Tab
-        contact_tab = self.create_contact_info_tab()
-        tabs.addTab(contact_tab, "Contact Information")
-        
-        # Medical History Tab
-        medical_tab = self.create_medical_history_tab()
-        tabs.addTab(medical_tab, "Medical History")
-        
-        # Additional Information Tab
-        additional_tab = self.create_additional_info_tab()
-        tabs.addTab(additional_tab, "Additional Information")
+        # Filled Forms Tab
+        forms_tab = self.create_filled_forms_tab()
+        tabs.addTab(forms_tab, "Filled Forms")
         
         layout.addWidget(tabs)
         
         # Action buttons
         button_layout = QHBoxLayout()
-        
-        edit_btn = QPushButton("Edit Information")
-        edit_btn.clicked.connect(self.edit_client_info)
-        button_layout.addWidget(edit_btn)
         
         fill_form_btn = QPushButton("Fill Form")
         fill_form_btn.setStyleSheet("""
@@ -93,149 +81,94 @@ class ClientDetailsView(QWidget):
         layout.addLayout(button_layout)
         
         self.setLayout(layout)
-        self.setGeometry(100, 100, 700, 600)
+        self.setGeometry(100, 100, 800, 700)
     
-    def create_personal_info_tab(self):
-        """Create personal information tab"""
+    def create_all_details_tab(self):
+        """Create a tab showing all client details dynamically"""
         widget = QWidget()
-        layout = QGridLayout()
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        
+        # Create a container widget for the scroll area
+        container = QWidget()
+        layout = QGridLayout(container)
         
         row = 0
-        fields = [
-            ("PEPFARID", "pepfarId"),
-            ("Full Name", "fullName"),
-            ("Date of Birth", "dob"),
-            ("Gender", "gender"),
-            ("Age", "age"),
-        ]
         
-        for label_text, field_key in fields:
-            label = QLabel(f"{label_text}:")
-            label_font = QFont()
-            label_font.setBold(True)
-            label.setFont(label_font)
-            
-            value = QLabel(str(self.client_data.get(field_key, "N/A")))
-            
-            layout.addWidget(label, row, 0)
-            layout.addWidget(value, row, 1)
-            row += 1
+        # Display all fields from client_data dynamically
+        if isinstance(self.client_data, dict):
+            for key, value in self.client_data.items():
+                # Format the key as a readable label
+                label_text = self.format_key_as_label(key)
+                label = QLabel(f"{label_text}:")
+                label_font = QFont()
+                label_font.setBold(True)
+                label.setFont(label_font)
+                
+                # Format the value based on its type
+                value_text = self.format_value(value)
+                value_label = QLabel(value_text)
+                value_label.setWordWrap(True)
+                
+                layout.addWidget(label, row, 0, alignment=Qt.AlignmentFlag.AlignTop)
+                layout.addWidget(value_label, row, 1)
+                row += 1
         
-        layout.addWidget(QLabel(""), row, 0)  # Spacer
+        # Add stretch at the bottom
+        layout.addWidget(QLabel(""), row, 0)
         layout.setRowStretch(row, 1)
+        
+        scroll_area.setWidget(container)
+        
+        main_layout = QVBoxLayout(widget)
+        main_layout.addWidget(scroll_area)
+        
+        return widget
+    
+    def create_filled_forms_tab(self):
+        """Create tab for filled forms"""
+        widget = QWidget()
+        layout = QVBoxLayout()
+        
+        forms_label = QLabel("Filled Forms for this Client:")
+        forms_font = QFont()
+        forms_font.setBold(True)
+        forms_label.setFont(forms_font)
+        layout.addWidget(forms_label)
+        
+        # Placeholder for filled forms list
+        info_label = QLabel("No filled forms available")
+        info_label.setStyleSheet("color: #999; font-style: italic;")
+        layout.addWidget(info_label)
+        
+        layout.addStretch()
         
         widget.setLayout(layout)
         return widget
     
-    def create_contact_info_tab(self):
-        """Create contact information tab"""
-        widget = QWidget()
-        layout = QGridLayout()
-        
-        row = 0
-        fields = [
-            ("Phone", "phone"),
-            ("Email", "email"),
-            ("Address", "address"),
-            ("City", "city"),
-            ("District", "district"),
-            ("Country", "country"),
-        ]
-        
-        for label_text, field_key in fields:
-            label = QLabel(f"{label_text}:")
-            label_font = QFont()
-            label_font.setBold(True)
-            label.setFont(label_font)
-            
-            value = QLabel(str(self.client_data.get(field_key, "N/A")))
-            
-            layout.addWidget(label, row, 0)
-            layout.addWidget(value, row, 1)
-            row += 1
-        
-        layout.addWidget(QLabel(""), row, 0)  # Spacer
-        layout.setRowStretch(row, 1)
-        
-        widget.setLayout(layout)
-        return widget
+    def format_key_as_label(self, key):
+        """Convert snake_case or camelCase key to readable label"""
+        # Handle camelCase
+        import re
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1 \2', key)
+        result = re.sub('([a-z0-9])([A-Z])', r'\1 \2', s1)
+        # Handle snake_case
+        result = result.replace('_', ' ')
+        # Capitalize each word
+        return result.title()
     
-    def create_medical_history_tab(self):
-        """Create medical history tab"""
-        widget = QWidget()
-        layout = QGridLayout()
+    def format_value(self, value):
+        """Format value for display"""
+        if value is None:
+            return "N/A"
         
-        row = 0
-        fields = [
-            ("HIV Status", "hivStatus"),
-            ("CD4 Count", "cd4Count"),
-            ("Viral Load", "viralLoad"),
-            ("Current ARVs", "currentARVs"),
-            ("Allergies", "allergies"),
-            ("Chronic Conditions", "chronicConditions"),
-        ]
+        if isinstance(value, bool):
+            return "Yes" if value else "No"
         
-        for label_text, field_key in fields:
-            label = QLabel(f"{label_text}:")
-            label_font = QFont()
-            label_font.setBold(True)
-            label.setFont(label_font)
-            
-            value_data = self.client_data.get(field_key, "N/A")
-            if isinstance(value_data, (list, dict)):
-                value_text = json.dumps(value_data, indent=2)
-            else:
-                value_text = str(value_data)
-            
-            value = QLabel(value_text)
-            value.setWordWrap(True)
-            
-            layout.addWidget(label, row, 0)
-            layout.addWidget(value, row, 1)
-            row += 1
+        if isinstance(value, (list, dict)):
+            return json.dumps(value, indent=2)
         
-        layout.addWidget(QLabel(""), row, 0)  # Spacer
-        layout.setRowStretch(row, 1)
-        
-        widget.setLayout(layout)
-        return widget
-    
-    def create_additional_info_tab(self):
-        """Create additional information tab"""
-        widget = QWidget()
-        layout = QGridLayout()
-        
-        row = 0
-        fields = [
-            ("Facility", "facility"),
-            ("Assigned Pharmacy", "assignedPharmacy"),
-            ("Status", "status"),
-            ("Last Sync", "lastSync"),
-            ("Created At", "createdAt"),
-            ("Updated At", "updatedAt"),
-        ]
-        
-        for label_text, field_key in fields:
-            label = QLabel(f"{label_text}:")
-            label_font = QFont()
-            label_font.setBold(True)
-            label.setFont(label_font)
-            
-            value = QLabel(str(self.client_data.get(field_key, "N/A")))
-            
-            layout.addWidget(label, row, 0)
-            layout.addWidget(value, row, 1)
-            row += 1
-        
-        layout.addWidget(QLabel(""), row, 0)  # Spacer
-        layout.setRowStretch(row, 1)
-        
-        widget.setLayout(layout)
-        return widget
-    
-    def edit_client_info(self):
-        """Edit client information"""
-        QMessageBox.information(self, "Edit", "Edit functionality coming soon")
+        return str(value)
     
     def request_form(self):
         """Request to fill form for this client"""

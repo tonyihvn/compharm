@@ -52,10 +52,6 @@ class FormsListView(QWidget):
         # Create tabs for Forms and Submissions
         self.tabs = QTabWidget()
         
-        # Forms tab (new)
-        forms_tab = self.create_forms_tab()
-        self.tabs.addTab(forms_tab, "Available Forms")
-        
         # Forms tab
         forms_widget = self.create_forms_tab()
         self.tabs.addTab(forms_widget, "Available Forms")
@@ -120,6 +116,24 @@ class FormsListView(QWidget):
         
         # Action buttons
         action_layout = QHBoxLayout()
+        
+        download_forms_btn = QPushButton("Download Forms from Server")
+        download_forms_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                padding: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0b7dda;
+            }
+            QPushButton:disabled {
+                background-color: #ccc;
+            }
+        """)
+        download_forms_btn.clicked.connect(self.download_forms_from_server)
+        action_layout.addWidget(download_forms_btn)
         
         fill_form_btn = QPushButton("Fill Form")
         fill_form_btn.setStyleSheet("""
@@ -315,3 +329,39 @@ Submitted By: {submission.get('submitted_by', 'Unknown')}
 Submitted At: {submission.get('createdAt', 'Unknown')}
             """
             self.submission_details_label.setText(details)
+    
+    def download_forms_from_server(self):
+        """Download forms from the React backend server."""
+        try:
+            # Show progress dialog
+            progress = QProgressBar(self)
+            progress.setMaximum(0)  # Indeterminate progress
+            progress.show()
+            
+            # Fetch forms from server
+            response = self.api_client.get('/api/forms')
+            
+            if response and response.get('success'):
+                forms_data = response.get('data', [])
+                
+                # Save forms to database
+                for form in forms_data:
+                    self.db_manager.save_form(form)
+                
+                # Refresh the forms list
+                self.load_data()
+                
+                progress.close()
+                QMessageBox.information(
+                    self, 
+                    "Success", 
+                    f"Downloaded {len(forms_data)} form(s) from server successfully!"
+                )
+            else:
+                progress.close()
+                error_msg = response.get('message', 'Unknown error') if response else 'Connection failed'
+                QMessageBox.warning(self, "Error", f"Failed to download forms: {error_msg}")
+        
+        except Exception as e:
+            logger.error(f"Error downloading forms from server: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Error downloading forms: {str(e)}")

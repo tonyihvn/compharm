@@ -36,7 +36,7 @@ class ColumnVisibilityMenu(QMenu):
             
             action = self.addAction("")
             action.setCheckable(False)
-            self.insertWidget(self.actions().index(action), checkbox)
+            action.setDefaultWidget(checkbox)
             
             self.checkboxes[col_name] = checkbox
         
