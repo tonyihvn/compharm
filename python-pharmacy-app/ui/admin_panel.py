@@ -2412,935 +2412,17 @@ class FormPreviewDialog(QDialog):
 
             sections = self.form_data.get("sections", [])
 
-            for section in sections:
-
-                self.render_section(layout, section)
-
-    
-
-    def render_section(self, layout, section):
-
-        """Render a form section"""
-
-        section_name = section.get("label") or section.get("name", "Section")
-
-        
-
-        # Section header
-
-        section_label = QLabel(section_name)
-
-        section_font = QFont()
-
-        section_font.setPointSize(12)
-
-        section_font.setBold(True)
-
-        section_label.setFont(section_font)
-
-        layout.addWidget(section_label)
-
-        
-
-        # Section separator
-
-        separator = QFrame()
-
-        separator.setFrameShape(QFrame.Shape.HLine)
-
-        layout.addWidget(separator)
-
-        
-
-        # Questions/fields
-
-        questions = section.get("questions", [])
-
-        for question in questions:
-
-            self.render_question(layout, question)
-
-        
-
-        layout.addSpacing(15)
-
-    
-
-    def render_question(self, layout, question):
-
-        """Render a single question/field"""
-
-        # Create a container for the field
-
-        field_group = QGroupBox()
-
-        field_layout = QVBoxLayout()
-
-        
-
-        label_text = question.get("label", question.get("id", "Field"))
-
-        required = question.get("required", False)
-
-        if required:
-
-            label_text += " *"
-
-        
-
-        label = QLabel(label_text)
-
-        label_font = QFont()
-
-        label_font.setBold(True)
-
-        label.setFont(label_font)
-
-        field_layout.addWidget(label)
-
-        
-
-        # Field type and details
-
-        field_type = question.get("type", "text")
-
-        rendering = question.get("questionOptions", {}).get("rendering", field_type)
-
-        
-
-        type_str = f"Type: {rendering or field_type}"
-
-        type_label = QLabel(type_str)
-
-        type_label.setStyleSheet("color: #666; font-size: 10px;")
-
-        field_layout.addWidget(type_label)
-
-        
-
-        # Field ID
-
-        if question.get("id"):
-
-            id_label = QLabel(f"ID: {question['id']}")
-
-            id_label.setStyleSheet("color: #999; font-size: 9px;")
-
-            field_layout.addWidget(id_label)
-
-        
-
-        # Display options if applicable
-
-        options_list = question.get("questionOptions", {}).get("answers", [])
-
-        if options_list:
-
-            options_label = QLabel("Options:")
-
-            options_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
-
-            field_layout.addWidget(options_label)
-
-            
-
-            for option in options_list:
-
-                option_label = option.get("label", option.get("concept", ""))
-
-                option_item = QLabel(f"  • {option_label}")
-
-                field_layout.addWidget(option_item)
-
-        
-
-        # Display validators if present
-
-        validators = question.get("validators", [])
-
-        if validators:
-
-            validators_label = QLabel("Validation:")
-
-            validators_label.setStyleSheet("font-weight: bold; margin-top: 5px; color: #0066cc;")
-
-            field_layout.addWidget(validators_label)
-
-            
-
-            for validator in validators:
-
-                validator_type = validator.get("type", "unknown")
-
-                message = validator.get("message", f"Validates: {validator_type}")
-
-                validator_item = QLabel(f"  • {message}")
-
-                validator_item.setStyleSheet("color: #0066cc; font-size: 10px;")
-
-                field_layout.addWidget(validator_item)
-
-        
-
-        # Display placeholder if present
-
-        if question.get("placeholder"):
-
-            placeholder_label = QLabel(f"Placeholder: {question['placeholder']}")
-
-            placeholder_label.setStyleSheet("color: #999; font-style: italic; font-size: 10px;")
-
-            field_layout.addWidget(placeholder_label)
-
-        
-
-        # Display hide/show logic if present
-
-        if question.get("hide"):
-
-            hide_label = QLabel("Has conditional display logic")
-
-            hide_label.setStyleSheet("color: #ff6600; font-size: 10px;")
-
-            field_layout.addWidget(hide_label)
-
-        
-
-        field_group.setLayout(field_layout)
-
-        layout.addWidget(field_group)
-
-
-
-
-
-class FormEditorWithPreviewDialog(QDialog):
-
-    """Dialog for editing forms with live preview"""
-
-    
-
-    def __init__(self, parent, form_data, api_url, token, form_id):
-
-        super().__init__(parent)
-
-        self.form_data = form_data
-
-        self.api_url = api_url
-
-        self.token = token
-
-        self.form_id = form_id
-
-        self.original_json = json.dumps(form_data, indent=2)
-
-        self.init_ui()
-
-        self.setWindowTitle(f"Edit Form: {form_data.get('name', 'Form')}")
-
-        self.setGeometry(100, 100, 1400, 800)
-
-    
-
-    def init_ui(self):
-
-        """Initialize UI with split view: JSON editor and preview"""
-
-        layout = QVBoxLayout()
-
-        
-
-        # Title
-
-        title = QLabel(f"Edit: {self.form_data.get('name', 'Form')}")
-
-        title_font = QFont()
-
-        title_font.setPointSize(12)
-
-        title_font.setBold(True)
-
-        title.setFont(title_font)
-
-        layout.addWidget(title)
-
-        
-
-        # Splitter for JSON editor and preview
-
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-
-        
-
-        # Left side: JSON Editor
-
-        left_widget = QWidget()
-
-        left_layout = QVBoxLayout()
-
-        
-
-        editor_label = QLabel("JSON Editor")
-
-        editor_font = QFont()
-
-        editor_font.setBold(True)
-
-        editor_label.setFont(editor_font)
-
-        left_layout.addWidget(editor_label)
-
-        
-
-        self.json_editor = QPlainTextEdit()
-
-        self.json_editor.setPlainText(self.original_json)
-
-        self.json_editor.setFont(QFont("Courier", 9))
-
-        self.json_editor.textChanged.connect(self.on_json_changed)
-
-        left_layout.addWidget(self.json_editor)
-
-        
-
-        # JSON validation status
-
-        self.json_status = QLabel("✓ Valid JSON")
-
-        self.json_status.setStyleSheet("color: green; font-weight: bold;")
-
-        left_layout.addWidget(self.json_status)
-
-        
-
-        left_widget.setLayout(left_layout)
-
-        splitter.addWidget(left_widget)
-
-        
-
-        # Right side: Live Preview
-
-        right_widget = QWidget()
-
-        right_layout = QVBoxLayout()
-
-        
-
-        preview_label = QLabel("Live Preview")
-
-        preview_font = QFont()
-
-        preview_font.setBold(True)
-
-        preview_label.setFont(preview_font)
-
-        right_layout.addWidget(preview_label)
-
-        
-
-        self.preview_scroll = QScrollArea()
-
-        self.preview_scroll.setWidgetResizable(True)
-
-        self.preview_content = QWidget()
-
-        self.preview_layout = QVBoxLayout()
-
-        self.preview_content.setLayout(self.preview_layout)
-
-        self.preview_scroll.setWidget(self.preview_content)
-
-        right_layout.addWidget(self.preview_scroll)
-
-        
-
-        right_widget.setLayout(right_layout)
-
-        splitter.addWidget(right_widget)
-
-        
-
-        # Set initial sizes
-
-        splitter.setSizes([600, 600])
-
-        layout.addWidget(splitter)
-
-        
-
-        # Action buttons
-
-        button_layout = QHBoxLayout()
-
-        
-
-        save_btn = QPushButton("Save Changes")
-
-        save_btn.setStyleSheet("""
-
-            QPushButton {
-
-                background-color: #4CAF50;
-
-                color: white;
-
-                padding: 10px;
-
-                border-radius: 4px;
-
-                font-weight: bold;
-
-            }
-
-            QPushButton:hover {
-
-                background-color: #45a049;
-
-            }
-
-        """)
-
-        save_btn.clicked.connect(self.save_form)
-
-        button_layout.addWidget(save_btn)
-
-        
-
-        reset_btn = QPushButton("Reset")
-
-        reset_btn.clicked.connect(self.reset_json)
-
-        button_layout.addWidget(reset_btn)
-
-        
-
-        button_layout.addStretch()
-
-        
-
-        cancel_btn = QPushButton("Cancel")
-
-        cancel_btn.clicked.connect(self.reject)
-
-        button_layout.addWidget(cancel_btn)
-
-        
-
-        layout.addLayout(button_layout)
-
-        
-
-        self.setLayout(layout)
-
-        
-
-        # Load initial preview
-
-        self.on_json_changed()
-
-    
-
-    def on_json_changed(self):
-
-        """Update preview when JSON is edited"""
-
-        json_text = self.json_editor.toPlainText()
-
-        
-
-        try:
-
-            form_data = json.loads(json_text)
-
-            self.json_status.setText("✓ Valid JSON")
-
-            self.json_status.setStyleSheet("color: green; font-weight: bold;")
-
-            
-
-            # Update preview
-
-            self.update_preview(form_data)
-
-        
-
-        except json.JSONDecodeError as e:
-
-            self.json_status.setText(f"✗ Invalid JSON: {str(e)}")
-
-            self.json_status.setStyleSheet("color: red; font-weight: bold;")
-
-            
-
-            # Clear preview
-
-            self.clear_preview()
-
-    
-
-    def clear_preview(self):
-
-        """Clear the preview area"""
-
-        while self.preview_layout.count():
-
-            item = self.preview_layout.takeAt(0)
-
-            if item.widget():
-
-                item.widget().deleteLater()
-
-        
-
-        error_label = QLabel("Invalid JSON - Cannot preview")
-
-        error_label.setStyleSheet("color: red; font-style: italic;")
-
-        self.preview_layout.addWidget(error_label)
-
-    
-
-    def update_preview(self, form_data):
-
-        """Update preview with current form data"""
-
-        # Clear existing preview
-
-        while self.preview_layout.count():
-
-            item = self.preview_layout.takeAt(0)
-
-            if item.widget():
-
-                item.widget().deleteLater()
-
-        
-
-        # Add title
-
-        title = QLabel(form_data.get("name", "Form"))
-
-        title_font = QFont()
-
-        title_font.setPointSize(12)
-
-        title_font.setBold(True)
-
-        title.setFont(title_font)
-
-        self.preview_layout.addWidget(title)
-
-        
-
-        if form_data.get("description"):
-
-            desc = QLabel(form_data["description"])
-
-            desc.setWordWrap(True)
-
-            desc.setStyleSheet("color: #666; margin: 5px 0px;")
-
-            self.preview_layout.addWidget(desc)
-
-        
-
-        # Separator
-
-        separator = QFrame()
-
-        separator.setFrameShape(QFrame.Shape.HLine)
-
-        self.preview_layout.addWidget(separator)
-
-        
-
-        # Render form preview
-
-        pages = form_data.get("pages", [])
-
-        if pages:
-
-            for page in pages:
-
-                sections = page.get("sections", [])
-
-                for section in sections:
-
-                    self.render_preview_section(section)
-
-        else:
-
-            sections = form_data.get("sections", [])
-
-            for section in sections:
-
-                self.render_preview_section(section)
-
-        
-
-        self.preview_layout.addStretch()
-
-    
-
-    def render_preview_section(self, section):
-
-        """Render section in preview"""
-
-        section_name = section.get("label") or section.get("name", "Section")
-
-        
-
-        section_label = QLabel(section_name)
-
-        section_font = QFont()
-
-        section_font.setPointSize(11)
-
-        section_font.setBold(True)
-
-        section_label.setFont(section_font)
-
-        self.preview_layout.addWidget(section_label)
-
-        
-
-        separator = QFrame()
-
-        separator.setFrameShape(QFrame.Shape.HLine)
-
-        self.preview_layout.addWidget(separator)
-
-        
-
-        questions = section.get("questions", [])
-
-        for question in questions:
-
-            self.render_preview_question(question)
-
-        
-
-        self.preview_layout.addSpacing(10)
-
-    
-
-    def render_preview_question(self, question):
-
-        """Render question in preview"""
-
-        label_text = question.get("label", question.get("id", "Field"))
-
-        if question.get("required"):
-
-            label_text += " *"
-
-        
-
-        label = QLabel(label_text)
-
-        label_font = QFont()
-
-        label_font.setBold(True)
-
-        label.setFont(label_font)
-
-        self.preview_layout.addWidget(label)
-
-        
-
-        field_type = question.get("type", "text")
-
-        rendering = question.get("questionOptions", {}).get("rendering", field_type)
-
-        type_info = QLabel(f"Type: {rendering or field_type}")
-
-        type_info.setStyleSheet("color: #666; font-size: 10px;")
-
-        self.preview_layout.addWidget(type_info)
-
-        
-
-        # Show options if present
-
-        options_list = question.get("questionOptions", {}).get("answers", [])
-
-        if options_list:
-
-            for option in options_list:
-
-                option_text = option.get("label", option.get("concept", ""))
-
-                option_widget = QLabel(f"  ○ {option_text}")
-
-                self.preview_layout.addWidget(option_widget)
-
-        
-
-        self.preview_layout.addSpacing(5)
-
-    
-
-    def reset_json(self):
-
-        """Reset JSON to original"""
-
-        self.json_editor.setPlainText(self.original_json)
-
-    
-
-    def save_form(self):
-
-        """Save form with updated JSON"""
-
-        json_text = self.json_editor.toPlainText()
-
-        
-
-        try:
-
-            form_data = json.loads(json_text)
-
-        except json.JSONDecodeError as e:
-
-            QMessageBox.critical(self, "Invalid JSON", f"Cannot save: {str(e)}")
-
-            return
-
-        
-
-        try:
-
-            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-
-            response = requests.put(
-
-                f"{self.api_url}/api/forms/{self.form_id}",
-
-                json=form_data,
-
-                headers=headers,
-
-                timeout=10
-
-            )
-
-            
-
-            if response.status_code in [200, 201]:
-
-                QMessageBox.information(self, "Success", "Form saved successfully")
-
-                self.accept()
-
-            else:
-
-                error_msg = response.json().get("message", "Unknown error")
-
-                QMessageBox.warning(self, "Error", f"Failed to save form: {error_msg}")
-
-        
-
-        except Exception as e:
-
-            QMessageBox.critical(self, "Error", f"Save error: {str(e)}")
-
-
-
-
-
-
-
-
-
-class FormPreviewDialog(QDialog):
-
-    """Dialog for previewing forms without editing"""
-
-    
-
-    def __init__(self, parent, form_data, form_name):
-
-        super().__init__(parent)
-
-        self.form_data = form_data
-
-        self.form_name = form_name
-
-        self.init_ui()
-
-        self.setWindowTitle(f"Preview Form: {form_name}")
-
-        self.setGeometry(100, 100, 1000, 700)
-
-    
-
-    def init_ui(self):
-
-        """Initialize UI components"""
-
-        layout = QVBoxLayout()
-
-        
-
-        # Title and description section
-
-        header_layout = QVBoxLayout()
-
-        
-
-        title = QLabel(self.form_data.get("name", self.form_name))
-
-        title_font = QFont()
-
-        title_font.setPointSize(14)
-
-        title_font.setBold(True)
-
-        title.setFont(title_font)
-
-        header_layout.addWidget(title)
-
-        
-
-        if self.form_data.get("description"):
-
-            desc = QLabel(self.form_data["description"])
-
-            desc.setWordWrap(True)
-
-            desc.setStyleSheet("color: #666; margin: 5px 0px;")
-
-            header_layout.addWidget(desc)
-
-        
-
-        # Form metadata
-
-        metadata_layout = QHBoxLayout()
-
-        
-
-        # Version
-
-        if self.form_data.get("version"):
-
-            metadata_layout.addWidget(QLabel(f"Version: {self.form_data['version']}"))
-
-        
-
-        # Status
-
-        status = "Published" if self.form_data.get("published", False) else "Draft"
-
-        status_label = QLabel(f"Status: {status}")
-
-        status_label.setStyleSheet("font-weight: bold;")
-
-        metadata_layout.addWidget(status_label)
-
-        
-
-        metadata_layout.addStretch()
-
-        header_layout.addLayout(metadata_layout)
-
-        
-
-        layout.addLayout(header_layout)
-
-        
-
-        # Separator
-
-        separator = QFrame()
-
-        separator.setFrameShape(QFrame.Shape.HLine)
-
-        layout.addWidget(separator)
-
-        
-
-        # Scroll area for form content
-
-        scroll = QScrollArea()
-
-        scroll.setWidgetResizable(True)
-
-        scroll_content = QWidget()
-
-        form_layout = QVBoxLayout()
-
-        
-
-        # Display form sections and questions
-
-        self.render_form_preview(form_layout)
-
-        
-
-        form_layout.addStretch()
-
-        scroll_content.setLayout(form_layout)
-
-        scroll.setWidget(scroll_content)
-
-        layout.addWidget(scroll)
-
-        
-
-        # Close button
-
-        button_layout = QHBoxLayout()
-
-        button_layout.addStretch()
-
-        close_btn = QPushButton("Close")
-
-        close_btn.clicked.connect(self.accept)
-
-        button_layout.addWidget(close_btn)
-
-        layout.addLayout(button_layout)
-
-        
-
-        self.setLayout(layout)
-
-    
-
-    def render_form_preview(self, layout):
-
-        """Render form sections and questions as read-only preview"""
-
-        # Handle both new format (pages/sections) and old format
-
-        pages = self.form_data.get("pages", [])
-
-        
-
-        if pages:
-
-            # New format with pages
-
-            for page in pages:
-
-                sections = page.get("sections", [])
+            if sections:
 
                 for section in sections:
 
                     self.render_section(layout, section)
 
-        else:
+            else:
 
-            # Fallback to direct sections
+                # Fallback to raw form data rendering for unstructured data
 
-            sections = self.form_data.get("sections", [])
-
-            for section in sections:
-
-                self.render_section(layout, section)
+                self.render_raw_form_data(layout)
 
     
 
@@ -3536,6 +2618,209 @@ class FormPreviewDialog(QDialog):
 
         layout.addWidget(field_group)
 
+    
+
+    def render_raw_form_data(self, layout):
+
+        """Render unstructured form data as interactive input fields"""
+
+        if not isinstance(self.form_data, dict):
+
+            # If data is not a dict, show it as text
+
+            text_label = QLabel("Form Data:")
+
+            text_font = QFont()
+
+            text_font.setBold(True)
+
+            text_label.setFont(text_font)
+
+            layout.addWidget(text_label)
+
+            
+
+            text_display = QTextEdit()
+
+            text_display.setText(str(self.form_data))
+
+            text_display.setReadOnly(True)
+
+            layout.addWidget(text_display)
+
+            return
+
+        
+
+        # Skip internal fields and render user-facing fields as input widgets
+
+        fields_rendered = 0
+
+        for key, value in self.form_data.items():
+
+            # Skip internal fields (timestamp, id, uuid, and _-prefixed fields)
+
+            if key in ("timestamp", "id", "uuid", "_id", "form_id", "version") or key.startswith("_"):
+
+                continue
+
+            
+
+            # Format the key as a readable label
+
+            label_text = self._format_field_label(key)
+
+            
+
+            # Create a container for this field
+
+            field_group = QGroupBox()
+
+            field_layout = QVBoxLayout()
+
+            
+
+            # Add label
+
+            label = QLabel(label_text)
+
+            label_font = QFont()
+
+            label_font.setBold(True)
+
+            label.setFont(label_font)
+
+            field_layout.addWidget(label)
+
+            
+
+            # Create appropriate widget based on value type
+
+            widget = self._create_input_widget(key, value)
+
+            field_layout.addWidget(widget)
+
+            
+
+            field_group.setLayout(field_layout)
+
+            layout.addWidget(field_group)
+
+            fields_rendered += 1
+
+        
+
+        if fields_rendered == 0:
+
+            # No displayable fields found
+
+            no_data_label = QLabel("No form fields to display")
+
+            no_data_label.setStyleSheet("color: #999; font-style: italic;")
+
+            layout.addWidget(no_data_label)
+
+    
+
+    def _format_field_label(self, key):
+
+        """Convert snake_case or camelCase field names to Title Case labels"""
+
+        # Convert snake_case to Title Case
+
+        if "_" in key:
+
+            return " ".join(word.capitalize() for word in key.split("_"))
+
+        
+
+        # Convert camelCase to Title Case
+
+        import re
+
+        label = re.sub(r"([A-Z])", r" \1", key).strip()
+
+        return label.title() if label else key
+
+    
+
+    def _create_input_widget(self, key, value):
+
+        """Create appropriate input widget based on value type"""
+
+        if isinstance(value, bool):
+
+            # Checkbox for boolean values
+
+            checkbox = QCheckBox()
+
+            checkbox.setChecked(value)
+
+            checkbox.setEnabled(False)
+
+            return checkbox
+
+        
+
+        elif isinstance(value, (int, float)):
+
+            # Spin box or line edit for numeric values
+
+            if isinstance(value, float):
+
+                spin_box = QDoubleSpinBox()
+
+                spin_box.setValue(value)
+
+            else:
+
+                spin_box = QSpinBox()
+
+                spin_box.setValue(value)
+
+            
+
+            spin_box.setEnabled(False)
+
+            return spin_box
+
+        
+
+        elif isinstance(value, (list, dict)):
+
+            # Text edit for complex structures
+
+            text_edit = QTextEdit()
+
+            import json
+
+            if isinstance(value, dict):
+
+                text_edit.setText(json.dumps(value, indent=2))
+
+            else:
+
+                text_edit.setText(json.dumps(value, indent=2))
+
+            
+
+            text_edit.setReadOnly(True)
+
+            return text_edit
+
+        
+
+        else:
+
+            # Line edit for strings and everything else
+
+            line_edit = QLineEdit()
+
+            line_edit.setText(str(value))
+
+            line_edit.setReadOnly(True)
+
+            return line_edit
 
 
 
@@ -4079,10 +3364,4 @@ class FormEditorWithPreviewDialog(QDialog):
 
 
 
-
-
-
-
-
-
-
+
