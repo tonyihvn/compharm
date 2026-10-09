@@ -132,6 +132,41 @@ class DatabaseManager:
         finally:
             session.close()
 
+    def get_all_clients(self) -> list:
+        """Get all clients from local database.
+        
+        Returns:
+            List of client dictionaries
+        """
+        session = self.get_session()
+        try:
+            clients = session.query(Client).all()
+            
+            result = []
+            for client in clients:
+                result.append({
+                    'id': client.id,
+                    'pepfar_id': client.pepfar_id,
+                    'fullName': client.full_name,
+                    'full_name': client.full_name,
+                    'dateOfBirth': client.date_of_birth,
+                    'gender': client.gender,
+                    'phone': client.phone_number,
+                    'email': client.email,
+                    'national_id': client.national_id,
+                    'address': client.address,
+                    'facility_id': client.facility_id,
+                    'pharmacy_id': client.pharmacy_id,
+                })
+            
+            logger.info(f"Loaded {len(result)} clients from database")
+            return result
+        except Exception as e:
+            logger.error(f"Error loading clients: {str(e)}")
+            return []
+        finally:
+            session.close()
+
     def add_or_update_form(self, form_data: dict):
         """Add or update a form in the database.
         

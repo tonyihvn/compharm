@@ -466,11 +466,47 @@ class ModernMainWindow(QMainWindow):
     def on_fill_form_requested(self, client_data: dict):
         """Handle fill form request from enhanced client list or detail view."""
         try:
-            # For now, show a dialog to select a form
-            # In a complete implementation, this would show a form selection dialog
-            client_id = client_data.get('id')
-            self.current_client = type('obj', (object,), {'id': client_id})()
+            from PyQt6.QtWidgets import QMessageBox
+            from ui.widgets.form_selector_dialog import FormSelectorDialog
+            from ui.form_filling_dialog import FormFillingDialog
+            
+            # Show form selector dialog
+            form_selector = FormSelectorDialog(client_data, self.db_manager, self)
+            
+            if form_selector.exec() == FormSelectorDialog.DialogCode.Accepted:
+                selected_form = form_selector.selected_form
+                
+                if not selected_form:
+                    QMessageBox.warning(self, "Error", "No form selected")
+                    return
+                
+                # Get auth token
+                auth_token = None
+                try:
+                    from services.auth import AuthService
+                    auth_service = AuthService(self.db_manager)
+                    auth_token = auth_service.get_current_token()
+                except:
+                    pass
+                
+                # Open form filling dialog
+                form_filling_dialog = FormFillingDialog(
+                    selected_form.get('definition', {}),
+                    client_data,
+                    settings.API_URL or 'http://localhost:3000',
+                    self.db_manager,
+                    auth_token,
+                    self
+                )
+                
+                form_filling_dialog.form_submitted.connect(
+                    self.on_form_submitted
+                )
+                form_filling_dialog.exec()
+            
+            self.current_client = type('obj', (object,), {'id': client_data.get('id')})()
             self.status_label.setText(f"Ready to fill form for {client_data.get('fullName')}")
+        
         except Exception as e:
             logger.error(f"Error preparing to fill form: {str(e)}")
             from PyQt6.QtWidgets import QMessageBox

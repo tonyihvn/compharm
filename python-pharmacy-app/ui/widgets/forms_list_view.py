@@ -184,21 +184,23 @@ class FormsListView(QWidget):
         return widget
     
     def load_data(self):
-        """Load forms and clients from server."""
+        """Load forms and clients from local database (offline-first)."""
         try:
-            # Load forms
-            self.forms = self.api_client.fetch_available_forms()
+            # Load forms from local database only (offline-first)
+            self.forms = self.db_manager.get_all_forms()
             self.refresh_forms_list()
             
-            # Load clients
-            self.clients = self.api_client.fetch_clients()
+            # Load clients from local database only (offline-first)
+            self.clients = self.db_manager.get_all_clients()
             self.refresh_clients_list()
             
-            # Load submissions
+            # Load submissions from local database
             self.load_submissions()
             
         except Exception as e:
-            logger.debug(f"Error loading data on startup: {str(e)} - app will continue offline")
+            logger.error(f"Error loading local data: {str(e)}")
+            self.forms_list.addItem("Error loading forms")
+            self.clients_list.addItem("Error loading clients")
     
     def refresh_forms_list(self):
         """Refresh the forms list widget."""
@@ -229,33 +231,26 @@ class FormsListView(QWidget):
             self.clients_list.addItem(item)
     
     def load_submissions(self):
-        """Load recent form submissions."""
+        """Load recent form submissions from local database (offline-first)."""
         try:
             self.submissions_list.clear()
             
-            response = self.api_client.session.get(
-                f"{self.api_url}/api/submissions",
-                params={"limit": 50, "page": 1},
-                timeout=10
-            )
+            # Get pending submissions from database
+            submissions = self.db_manager.get_pending_submissions()
             
-            if response.status_code == 200:
-                data = response.json()
-                submissions = data.get('submissions', [])
+            if not submissions:
+                self.submissions_list.addItem("No submissions found")
+                return
+            
+            for submission in submissions:
+                form_name = submission.get('form_name', 'Unknown')
+                client_name = submission.get('client_name', 'Unknown')
+                status = submission.get('status', 'pending')
                 
-                if not submissions:
-                    self.submissions_list.addItem("No submissions found")
-                    return
-                
-                for submission in submissions:
-                    form_name = submission.get('form_name', 'Unknown')
-                    client_name = submission.get('client_name', 'Unknown')
-                    status = submission.get('status', 'pending')
-                    
-                    display_text = f"{form_name} - {client_name} ({status})"
-                    item = QListWidgetItem(display_text)
-                    item.setData(Qt.ItemDataRole.UserRole, submission)
-                    self.submissions_list.addItem(item)
+                display_text = f"{form_name} - {client_name} ({status})"
+                item = QListWidgetItem(display_text)
+                item.setData(Qt.ItemDataRole.UserRole, submission)
+                self.submissions_list.addItem(item)
         
         except Exception as e:
             logger.error(f"Error loading submissions: {str(e)}")
