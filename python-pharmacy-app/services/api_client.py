@@ -154,7 +154,23 @@ class CentralServerClient:
                 timeout=self.timeout
             )
             data = self._handle_response(response)
-            return data.get("forms", []) if isinstance(data, dict) else data
+            
+            # Handle different API response formats
+            if isinstance(data, dict):
+                # Try to get forms from 'data' field first (React backend format)
+                if "data" in data:
+                    forms = data.get("data", [])
+                    return forms if isinstance(forms, list) else []
+                # Fallback to 'forms' field
+                elif "forms" in data:
+                    return data.get("forms", [])
+                # If dict itself contains form data
+                else:
+                    return [data] if "form_name" in data or "name" in data else []
+            elif isinstance(data, list):
+                return data
+            else:
+                return []
         except Exception as e:
             logger.warning(f"Failed to fetch forms (offline mode): {str(e)}")
             return []  # Return empty list for offline mode

@@ -326,6 +326,46 @@ class DatabaseManager:
         finally:
             session.close()
 
+    def save_form(self, form_data: dict) -> bool:
+        """Save a form from API response to the local database.
+        
+        Handles React backend API response format with fields like:
+        - id or form_id: Form identifier
+        - form_name or name: Display name
+        - form_data: Form definition (JSON)
+        - version: Form version
+        - description: Form description
+        
+        Args:
+            form_data: Form dictionary from API response
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Extract fields with fallbacks for different API formats
+            form_id = form_data.get('id') or form_data.get('form_id') or form_data.get('uuid')
+            form_name = form_data.get('form_name') or form_data.get('name', 'Unnamed Form')
+            form_definition = form_data.get('form_data') or form_data.get('definition') or {}
+            version = str(form_data.get('version', '1.0'))
+            description = form_data.get('description', '')
+            
+            if not form_id:
+                logger.error(f"Cannot save form without ID: {form_data}")
+                return False
+            
+            return self.store_form(
+                form_id=str(form_id),
+                form_name=form_name,
+                form_definition=form_definition,
+                version=version,
+                description=description
+            )
+        except Exception as e:
+            logger.error(f"Error saving form from API response: {str(e)}")
+            return False
+
+
     def get_all_forms(self) -> list:
         """Get all stored forms from local database.
         

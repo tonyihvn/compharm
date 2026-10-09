@@ -338,12 +338,10 @@ Submitted At: {submission.get('createdAt', 'Unknown')}
             progress.setMaximum(0)  # Indeterminate progress
             progress.show()
             
-            # Fetch forms from server
-            response = self.api_client.get('/api/forms')
+            # Fetch forms from server using the correct API method
+            forms_data = self.api_client.get_forms()
             
-            if response and response.get('success'):
-                forms_data = response.get('data', [])
-                
+            if forms_data:
                 # Save forms to database
                 for form in forms_data:
                     self.db_manager.save_form(form)
@@ -357,11 +355,13 @@ Submitted At: {submission.get('createdAt', 'Unknown')}
                     "Success", 
                     f"Downloaded {len(forms_data)} form(s) from server successfully!"
                 )
+                logger.info(f"Successfully downloaded {len(forms_data)} forms from server")
             else:
                 progress.close()
-                error_msg = response.get('message', 'Unknown error') if response else 'Connection failed'
-                QMessageBox.warning(self, "Error", f"Failed to download forms: {error_msg}")
+                QMessageBox.warning(self, "Error", "No forms available on server or connection failed")
+                logger.warning("No forms returned from server or connection unavailable")
         
         except Exception as e:
+            progress.close() if 'progress' in locals() else None
             logger.error(f"Error downloading forms from server: {str(e)}")
             QMessageBox.critical(self, "Error", f"Error downloading forms: {str(e)}")
