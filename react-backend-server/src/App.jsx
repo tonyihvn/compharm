@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import ClientsPage from './components/ClientsPage';
+import FormsPage from './components/FormsPage';
 import './App.css';
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState('clients');
 
     useEffect(() => {
         // Check if user is authenticated
@@ -70,13 +72,28 @@ function App() {
         <div className="app">
             <header className="app-header">
                 <div className="header-content">
-                    <h1>Pharmacy Client Management System</h1>
+                    <h1>Pharmacy Management System</h1>
+                    <nav className="nav-tabs">
+                        <button
+                            className={`nav-tab ${currentPage === 'clients' ? 'active' : ''}`}
+                            onClick={() => setCurrentPage('clients')}
+                        >
+                            👥 Clients
+                        </button>
+                        <button
+                            className={`nav-tab ${currentPage === 'forms' ? 'active' : ''}`}
+                            onClick={() => setCurrentPage('forms')}
+                        >
+                            📋 Forms
+                        </button>
+                    </nav>
                     <button onClick={handleLogout} className="btn-logout">Logout</button>
                 </div>
             </header>
 
             <main className="app-main">
-                <ClientsPage />
+                {currentPage === 'clients' && <ClientsPage />}
+                {currentPage === 'forms' && <FormsPage />}
             </main>
 
             <footer className="app-footer">
