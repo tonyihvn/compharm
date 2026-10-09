@@ -216,17 +216,6 @@ class FormEditorDialog(QDialog):
                 QMessageBox.warning(self, "Validation Error", "Please enter a form name")
                 return
             
-    def save_form(self):
-        """Save form changes to server"""
-        try:
-            # Collect form data
-            form_name = self.name_input.text().strip()
-            description = self.desc_input.toPlainText()
-            
-            if not form_name:
-                QMessageBox.warning(self, "Validation Error", "Please enter a form name")
-                return
-            
             # Collect fields
             fields = []
             for row in range(self.fields_table.rowCount()):
@@ -268,41 +257,6 @@ class FormEditorDialog(QDialog):
             
             # Send to server
             headers = {
-                "Authorization": f"******",
-                "Content-Type": "application/json"
-            }
-            
-            response = requests.put(
-                f"{self.api_url}/api/forms/{self.form_id}",
-                json=form_schema,
-                headers=headers,
-                timeout=10
-            )
-            
-            if response.status_code in [200, 201]:
-                QMessageBox.information(self, "Success", "Form saved successfully")
-                self.accept()
-            else:
-                error_msg = response.json().get("message", "Unknown error")
-                QMessageBox.warning(self, "Error", f"Failed to save form: {error_msg}")
-        
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Save error: {str(e)}")
-            
-            # Build form schema
-            form_schema = {
-                "name": form_name,
-                "description": description,
-                "sections": [
-                    {
-                        "name": "Main",
-                        "fields": fields
-                    }
-                ]
-            }
-            
-            # Send to server
-            headers = {
                 "Authorization": f"Bearer {self.token}",
                 "Content-Type": "application/json"
             }
@@ -323,3 +277,4 @@ class FormEditorDialog(QDialog):
         
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Save error: {str(e)}")
+            logger.error(f"Save form error: {str(e)}")

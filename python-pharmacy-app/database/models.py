@@ -245,3 +245,36 @@ class FormSubmission(Base):
 
     def __repr__(self):
         return f"<FormSubmission {self.id}>"
+
+
+class SyncLog(Base):
+    """Sync operation logs"""
+    __tablename__ = "sync_logs"
+    __table_args__ = (
+        Index('idx_user_id', 'user_id'),
+        Index('idx_sync_type', 'sync_type'),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # User reference
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    
+    # Sync details
+    sync_type = Column(String(50), nullable=False)  # upload, download, sync
+    status = Column(String(20), default='pending')  # pending, in_progress, success, failed
+    
+    # Sync statistics
+    total_items = Column(Integer, default=0)
+    processed_items = Column(Integer, default=0)
+    error_message = Column(Text)
+    
+    # Timestamps
+    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = Column(DateTime)
+    
+    # Relationships
+    user = relationship("User", back_populates="sync_logs")
+
+    def __repr__(self):
+        return f"<SyncLog {self.id} - {self.sync_type}>"

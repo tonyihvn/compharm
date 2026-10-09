@@ -20,6 +20,20 @@ class CentralServerClient:
         self.api_key = api_key or settings.PHARMACY_ID
         self.timeout = timeout or settings.API_TIMEOUT
         self.session = self._create_session()
+        self.online_mode = True
+        self.last_error = None
+
+    def is_online(self) -> bool:
+        """Check if server is reachable."""
+        try:
+            response = self.session.head(f"{self.api_url}/api/health", timeout=5)
+            self.online_mode = response.status_code < 500
+            return self.online_mode
+        except Exception as e:
+            logger.warning(f"Server not reachable: {str(e)}")
+            self.online_mode = False
+            self.last_error = str(e)
+            return False
 
     def _create_session(self) -> requests.Session:
         """Create a requests session with retries."""
@@ -40,7 +54,6 @@ class CentralServerClient:
         # Set default headers
         session.headers.update({
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
             "X-Pharmacy-ID": settings.PHARMACY_ID
         })
         
@@ -74,6 +87,11 @@ class CentralServerClient:
     def fetch_clients(self, facility_id: str = None, skip: int = 0, limit: int = 100) -> List[Dict]:
         """Fetch clients assigned to this pharmacy."""
         try:
+            # Check if online first
+            if not self.is_online():
+                logger.warning("Offline mode: returning empty client list")
+                return []
+            
             params = {
                 "pharmacy_id": settings.PHARMACY_ID,
                 "skip": skip,
@@ -90,8 +108,8 @@ class CentralServerClient:
             data = self._handle_response(response)
             return data.get("clients", []) if isinstance(data, dict) else data
         except Exception as e:
-            logger.error(f"Failed to fetch clients: {str(e)}")
-            raise
+            logger.warning(f"Failed to fetch clients (offline mode): {str(e)}")
+            return []  # Return empty list for offline mode
     
     def get_clients(self, facility_id: str = None, skip: int = 0, limit: int = 100) -> List[Dict]:
         """Alias for fetch_clients for compatibility."""
@@ -126,6 +144,11 @@ class CentralServerClient:
     def fetch_available_forms(self) -> List[Dict]:
         """Fetch list of available forms from server."""
         try:
+            # Check if online first
+            if not self.is_online():
+                logger.warning("Offline mode: returning empty forms list")
+                return []
+            
             response = self.session.get(
                 f"{self.api_url}/api/forms",
                 timeout=self.timeout
@@ -133,8 +156,12 @@ class CentralServerClient:
             data = self._handle_response(response)
             return data.get("forms", []) if isinstance(data, dict) else data
         except Exception as e:
-            logger.error(f"Failed to fetch forms: {str(e)}")
-            raise
+            logger.warning(f"Failed to fetch forms (offline mode): {str(e)}")
+            return []  # Return empty list for offline mode
+
+    def get_forms(self) -> List[Dict]:
+        """Alias for fetch_available_forms for compatibility."""
+        return self.fetch_available_forms()
 
     def upload_form(self, form_data: Dict) -> Dict:
         """Upload a new form definition (Admin only)."""

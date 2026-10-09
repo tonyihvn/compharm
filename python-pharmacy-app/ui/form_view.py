@@ -10,7 +10,10 @@ from PyQt6.QtCore import Qt, pyqtSignal, QDate, QTimer
 from PyQt6.QtGui import QFont, QPixmap, QIcon
 import requests
 import json
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class FormView(QWidget):
@@ -25,6 +28,51 @@ class FormView(QWidget):
         self.client_data = client_data
         self.api_url = api_url
         self.form_data = {}
+        self.widgets_map = {}
+        self.form_id = None
+        self.client_id = None
+        self.init_ui()
+    
+    def load_form(self, form_id: str, client_id: str):
+        """Load a form from server by ID."""
+        try:
+            # Fetch form definition
+            response = requests.get(
+                f"{self.api_url}/api/forms/{form_id}",
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                form_data = response.json().get('data', {})
+                self.form_definition = form_data
+                self.form_id = form_id
+                self.client_id = client_id
+                
+                # Fetch client details
+                if client_id:
+                    client_response = requests.get(
+                        f"{self.api_url}/api/clients/{client_id}",
+                        timeout=10
+                    )
+                    if client_response.status_code == 200:
+                        self.client_data = client_response.json().get('data', {})
+                
+                # Refresh UI
+                self.refresh_form_ui()
+            else:
+                logger.error(f"Failed to fetch form: {response.status_code}")
+        except Exception as e:
+            logger.error(f"Error loading form: {str(e)}")
+            raise
+    
+    def refresh_form_ui(self):
+        """Refresh the form UI with current form definition and client data."""
+        # Clear all existing widgets
+        while self.layout().count() > 0:
+            item = self.layout().takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
         self.widgets_map = {}
         self.init_ui()
     

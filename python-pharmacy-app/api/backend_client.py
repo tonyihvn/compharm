@@ -1,4 +1,4 @@
-"""
+﻿"""
 Backend API Client
 Handles all API requests to the ComPharm backend server with automatic authentication
 """
@@ -180,6 +180,26 @@ class BackendAPIClient:
         """Get list of available forms"""
         return self.request('GET', '/api/forms')
     
+    def download_form(self, form_id: str) -> Optional[bytes]:
+        """Download a form as JSON bytes"""
+        if not self.authenticated:
+            if not self.authenticate():
+                return None
+        
+        url = f"{self.base_url}/api/forms/{form_id}/download"
+        headers = self.get_headers()
+        
+        try:
+            response = requests.get(url, headers=headers, timeout=self.timeout)
+            if response.status_code == 200:
+                return response.content
+            else:
+                logger.error(f"Failed to download form: {response.status_code}")
+                return None
+        except Exception as e:
+            logger.error(f"Download form error: {str(e)}")
+            return None
+    
     def upload_form(self, form_file: bytes, name: str, description: str = "") -> Optional[Dict]:
         """Upload a new form"""
         # Note: This is a file upload, so it needs multipart/form-data
@@ -195,6 +215,75 @@ class BackendAPIClient:
         params = {"page": page, "limit": limit}
         params.update(kwargs)
         return self.request('GET', '/api/submissions', params=params)
+    
+    # Form Permission API Methods
+    
+    def get_form_permissions(self, form_id: str) -> Optional[Dict]:
+        """Get field permissions for a form"""
+        return self.request('GET', f'/api/forms/{form_id}/permissions')
+    
+    def set_form_field_permission(self, form_id: str, data: Dict) -> Optional[Dict]:
+        """Set field-level permission for a form"""
+        return self.request('POST', f'/api/forms/{form_id}/permissions', data=data)
+    
+    def update_form_field_permission(self, form_id: str, permission_id: str, data: Dict) -> Optional[Dict]:
+        """Update field-level permission for a form"""
+        return self.request('PUT', f'/api/forms/{form_id}/permissions/{permission_id}', data=data)
+    
+    def delete_form_field_permission(self, form_id: str, permission_id: str) -> Optional[Dict]:
+        """Delete field-level permission for a form"""
+        return self.request('DELETE', f'/api/forms/{form_id}/permissions/{permission_id}')
+    
+    def check_field_editable(self, form_id: str, field_name: str, user_role: str = None) -> tuple[bool, str]:
+        """
+        Check if a field can be edited by the current user.
+        Returns (can_edit, reason_if_not)
+        """
+        permissions = self.get_form_permissions(form_id)
+        if not permissions or not permissions.get('data'):
+            # No permissions set, allow editing by default
+            return True, ""
+        
+        for perm in permissions.get('data', []):
+            if perm.get('field_name') == field_name:
+                # Check if field is editable
+                if not perm.get('allow_edit'):
+                    return False, f"Field '{field_name}' is not editable in pharmacy app"
+                
+                # Check role restrictions
+                role_restrictions = perm.get('role_restrictions')
+                if role_restrictions and user_role:
+                    try:
+                        restrictions = role_restrictions if isinstance(role_restrictions, list) else [role_restrictions]
+                        if user_role not in restrictions:
+                            return False, f"Your role '{user_role}' cannot edit this field"
+                    except:
+                        pass
+                
+                return True, ""
+        
+        # No permissions set for this field, allow editing
+        return True, ""
+    
+    def validate_submission_fields(self, form_id: str, fields: Dict, user_role: str = None) -> tuple[bool, list]:
+        """
+        Validate all fields in a submission before sending to backend.
+        Returns (all_valid, list_of_invalid_fields)
+        """
+        invalid_fields = []
+        
+        for field_name in fields.keys():
+            if field_name in ['id', 'uuid']:
+                continue
+            
+            can_edit, reason = self.check_field_editable(form_id, field_name, user_role)
+            if not can_edit:
+                invalid_fields.append({
+                    'field': field_name,
+                    'reason': reason
+                })
+        
+        return len(invalid_fields) == 0, invalid_fields
     
     # Field API Methods
     
@@ -267,3 +356,6 @@ if __name__ == "__main__":
     else:
         print("✗ Authentication failed")
         print("Please configure backend credentials in System Settings")
+
+
+

@@ -17,10 +17,14 @@ from config.settings import settings
 from database.db_manager import DatabaseManager
 from services.api_client import CentralServerClient
 from ui.widgets.client_list_view import ClientListView
+from ui.widgets.enhanced_client_list import EnhancedClientListView
 from ui.widgets.client_detail_view import ClientDetailView
+from ui.client_full_details_view import ClientDetailsView as ClientFullDetailsView
 from ui.widgets.form_viewer import FormViewer
+from ui.widgets.forms_list_view import FormsListView
 from ui.widgets.admin_panel import AdminPanel
 from ui.widgets.sync_worker import SyncWorker
+from ui.widgets.sync_status_widget import SyncStatusIndicator, SyncProgressDialog
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +37,24 @@ class ModernMainWindow(QMainWindow):
         super().__init__()
         self.db_manager = db_manager
         self.settings = settings
-        self.api_client = CentralServerClient()
         self.current_user = None
         self.current_client = None
         self.sync_thread = None
         self.sync_worker = None
         self.sidebar_expanded = True
+        self.sync_progress_dialog = None
+        
+        # Initialize API client with offline support
+        try:
+            self.api_client = CentralServerClient()
+            # Check if server is reachable
+            self.online_mode = self.api_client.is_online()
+            if not self.online_mode:
+                logger.warning("Server not reachable - running in offline mode")
+        except Exception as e:
+            logger.warning(f"Failed to initialize API client: {e} - offline mode enabled")
+            self.api_client = CentralServerClient()
+            self.online_mode = False
 
         # Setup UI
         self.init_ui()
@@ -67,27 +83,34 @@ class ModernMainWindow(QMainWindow):
         self.stacked_widget = QStackedWidget()
 
         # Initialize views
-        self.client_list_view = ClientListView(
+        self.client_list_view = EnhancedClientListView(
             self.settings.CENTRAL_SERVER_URL, 
             self.current_user, 
             self.db_manager
         )
-        self.client_detail_view = ClientDetailView({"fullName": "Select a client"})
+        self.client_detail_view = ClientFullDetailsView({"fullName": "Select a client"}, self.db_manager)
         self.form_viewer = FormViewer(
             {"name": "Select a form"}, 
             {}, 
             self.settings.CENTRAL_SERVER_URL
         )
+        self.forms_list_view = FormsListView(
+            self.settings.CENTRAL_SERVER_URL,
+            self.current_user,
+            self.db_manager
+        )
         self.admin_panel = AdminPanel(
             self.settings.CENTRAL_SERVER_URL, 
-            self.current_user
+            self.current_user,
+            self.db_manager
         )
 
         # Add views to stacked widget
         self.stacked_widget.addWidget(self.client_list_view)       # Index 0
         self.stacked_widget.addWidget(self.client_detail_view)     # Index 1
         self.stacked_widget.addWidget(self.form_viewer)             # Index 2
-        self.stacked_widget.addWidget(self.admin_panel)             # Index 3
+        self.stacked_widget.addWidget(self.forms_list_view)         # Index 3
+        self.stacked_widget.addWidget(self.admin_panel)             # Index 4
 
         main_layout.addWidget(self.stacked_widget, 1)
 
@@ -145,12 +168,21 @@ class ModernMainWindow(QMainWindow):
         divider.setLineWidth(1)
         layout.addWidget(divider)
 
+        # Sync status indicator
+        self.sync_status_indicator = SyncStatusIndicator()
+        layout.addWidget(self.sync_status_indicator)
+        
+        # Divider
+        divider1_5 = QFrame()
+        divider1_5.setFrameShape(QFrame.Shape.HLine)
+        divider1_5.setLineWidth(1)
+        layout.addWidget(divider1_5)
+
         # Navigation buttons
         nav_buttons = [
             ("👥 Clients", self.show_client_list),
             ("📋 Forms", self.show_forms_list),
             ("⚙️ Admin Panel", self.show_admin_panel),
-            ("📊 Sync Status", self.show_sync_status),
             ("⚡ Sync Now", self.sync_data),
         ]
 
@@ -371,11 +403,25 @@ class ModernMainWindow(QMainWindow):
 
     def connect_signals(self):
         """Connect UI signals."""
-        self.client_list_view.client_selected.connect(self.on_client_selected)
+        # Enhanced client list signals
+        self.client_list_view.fill_form_requested.connect(self.on_fill_form_requested)
+        self.client_list_view.view_details_requested.connect(self.on_view_details_requested)
+        self.client_list_view.edit_client_requested.connect(self.on_edit_client_requested)
+        self.client_list_view.delete_client_requested.connect(self.on_delete_client_requested)
+        
+        # Client detail view signals
         self.client_detail_view.close_requested.connect(self.show_client_list)
-        self.client_detail_view.form_requested.connect(self.on_form_requested)
+        self.client_detail_view.fill_form_requested.connect(self.on_fill_form_requested)
+        
+        # Form viewer signals
         self.form_viewer.close_requested.connect(self.on_form_viewer_back)
         self.form_viewer.form_submitted.connect(self.on_form_submitted)
+        
+        # Forms list view signals
+        self.forms_list_view.close_requested.connect(self.show_client_list)
+        self.forms_list_view.form_selected.connect(self.on_forms_list_form_selected)
+        
+        # Admin panel signals
         self.admin_panel.close_requested.connect(self.show_client_list)
 
     def update_user_info(self):
@@ -400,8 +446,80 @@ class ModernMainWindow(QMainWindow):
             self.role_label.setText("Role: --")
             self.user_label.setText("")
 
+    def on_view_details_requested(self, client_data: dict):
+        """Handle view details request from enhanced client list."""
+        try:
+            client_id = client_data.get('id')
+            from database.models import Client
+            session = self.db_manager.get_session()
+            self.current_client = session.query(Client).filter_by(id=client_id).first()
+            session.close()
+
+            if self.current_client:
+                self.client_detail_view.load_client(client_id, client_data)
+                self.show_client_detail()
+        except Exception as e:
+            logger.error(f"Error viewing client details: {str(e)}")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Error", f"Failed to load client details: {str(e)}")
+
+    def on_fill_form_requested(self, client_data: dict):
+        """Handle fill form request from enhanced client list or detail view."""
+        try:
+            # For now, show a dialog to select a form
+            # In a complete implementation, this would show a form selection dialog
+            client_id = client_data.get('id')
+            self.current_client = type('obj', (object,), {'id': client_id})()
+            self.status_label.setText(f"Ready to fill form for {client_data.get('fullName')}")
+        except Exception as e:
+            logger.error(f"Error preparing to fill form: {str(e)}")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Error", f"Failed to prepare form: {str(e)}")
+
+    def on_edit_client_requested(self, client_data: dict):
+        """Handle edit client request from enhanced client list."""
+        try:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(
+                self,
+                "Edit Client",
+                f"Edit functionality for {client_data.get('fullName')} coming soon!"
+            )
+        except Exception as e:
+            logger.error(f"Error handling edit client: {str(e)}")
+
+    def on_delete_client_requested(self, client_id: str):
+        """Handle delete client request from enhanced client list."""
+        try:
+            from PyQt6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self,
+                "Confirm Delete",
+                "Are you sure you want to delete this client? This action cannot be undone.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # Delete from database
+                from database.models import Client
+                session = self.db_manager.get_session()
+                try:
+                    client = session.query(Client).filter_by(id=client_id).first()
+                    if client:
+                        session.delete(client)
+                        session.commit()
+                        self.client_list_view.load_clients()
+                        QMessageBox.information(self, "Success", "Client deleted successfully")
+                        self.status_label.setText("Client deleted successfully")
+                finally:
+                    session.close()
+        except Exception as e:
+            logger.error(f"Error deleting client: {str(e)}")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Error", f"Failed to delete client: {str(e)}")
+
     def on_client_selected(self, client_id: int):
-        """Handle client selection."""
+        """Handle client selection (legacy)."""
         try:
             from database.models import Client
             session = self.db_manager.get_session()
@@ -430,6 +548,30 @@ class ModernMainWindow(QMainWindow):
         self.status_label.setText("Form submitted successfully!")
         self.show_client_detail()
 
+    def on_forms_list_form_selected(self, form_data: dict, client_data: dict):
+        """Handle form selection from forms list view."""
+        self.current_client = type('obj', (object,), {'id': client_data.get('id')})()
+        
+        form_id = form_data.get('id')
+        client_id = client_data.get('id')
+        
+        try:
+            # Load form data
+            response = self.api_client.session.get(
+                f"{self.settings.CENTRAL_SERVER_URL}/api/forms/{form_id}",
+                timeout=10
+            )
+            if response.status_code == 200:
+                form_data = response.json().get('data', form_data)
+            
+            # Load form in viewer
+            self.form_viewer.load_form(form_id, client_id)
+            self.show_form_viewer()
+        except Exception as e:
+            logger.error(f"Error loading form: {str(e)}")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Error", f"Failed to load form: {str(e)}")
+
     def show_client_list(self):
         """Show client list view."""
         self.stacked_widget.setCurrentIndex(0)
@@ -446,22 +588,53 @@ class ModernMainWindow(QMainWindow):
         self.status_label.setText("Filling Form")
 
     def show_forms_list(self):
-        """Show forms list (placeholder)."""
-        self.status_label.setText("Forms management coming soon")
-        from PyQt6.QtWidgets import QMessageBox
-        QMessageBox.information(self, "Forms", "Forms management coming soon")
+        """Show forms management view."""
+        self.stacked_widget.setCurrentIndex(3)
+        self.forms_list_view.load_data()
+        self.status_label.setText("Forms Management")
 
     def show_sync_status(self):
-        """Show sync status (placeholder)."""
-        self.status_label.setText("Sync status: Idle")
-        from PyQt6.QtWidgets import QMessageBox
-        QMessageBox.information(self, "Sync Status", "Last sync: 5 minutes ago")
+        """Show sync status information."""
+        if self.sync_worker:
+            status = self.sync_worker.get_sync_status()
+            self.sync_status_indicator.set_success(status)
+        else:
+            self.sync_status_indicator.set_idle()
+
+    def sync_data(self):
+        """Manually trigger sync with progress dialog."""
+        if self.sync_worker is None:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Sync Error", 
+                              "Sync worker not initialized. Please restart the application.")
+            return
+        
+        # Check if already syncing
+        if self.sync_worker.is_syncing:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(self, "Sync in Progress", 
+                                  "A sync operation is already in progress.")
+            return
+        
+        # Show progress dialog
+        self.sync_progress_dialog = SyncProgressDialog(self)
+        
+        # Connect signals
+        self.sync_worker.sync_progress.connect(self.sync_progress_dialog.update_progress)
+        self.sync_worker.sync_completed.connect(self.on_sync_completed_manual)
+        self.sync_worker.sync_error.connect(self.on_sync_error_manual)
+        
+        # Trigger sync
+        self.sync_worker.trigger_sync()
+        
+        # Show dialog
+        self.sync_progress_dialog.exec()
 
     def show_admin_panel(self):
         """Show admin panel."""
         if self.current_user and (self.current_user.get('is_superuser') or 
                                    self.current_user.get('role') == 'admin'):
-            self.stacked_widget.setCurrentIndex(3)
+            self.stacked_widget.setCurrentIndex(4)
             self.admin_panel.refresh()
             self.status_label.setText("Admin Panel")
         else:
@@ -469,41 +642,70 @@ class ModernMainWindow(QMainWindow):
             QMessageBox.warning(self, "Access Denied", 
                               "Admin access required. You must be logged in as an administrator.")
 
-    def sync_data(self):
-        """Manually trigger sync."""
-        self.status_label.setText("Syncing...")
-        self.sync_status_label.setText("Sync: In Progress...")
-
     def on_sync_started(self):
         """Handle sync started."""
         self.sync_status_label.setText("Sync: In Progress...")
+        self.sync_status_indicator.set_syncing()
 
     def on_sync_completed(self, result):
-        """Handle sync completed."""
-        message = (f"Sync completed: "
+        """Handle auto-sync completed."""
+        message = (f"Sync: "
                   f"{result.get('clients_synced', 0)} clients, "
                   f"{result.get('forms_synced', 0)} forms")
         self.status_label.setText(message)
-        self.sync_status_label.setText("Sync: Completed")
-        logger.info(f"Sync result: {result}")
+        self.sync_status_label.setText("Sync: Completed ✓")
+        self.sync_status_indicator.set_success(self.sync_worker.get_sync_status())
+        logger.info(f"Auto-sync completed: {result}")
+
+    def on_sync_completed_manual(self, result):
+        """Handle manual sync completed."""
+        self.on_sync_completed(result)
+        if self.sync_progress_dialog:
+            self.sync_progress_dialog.sync_completed(result)
 
     def on_sync_error(self, error_msg: str):
         """Handle sync error."""
-        self.status_label.setText(f"Sync Error: {error_msg}")
+        self.status_label.setText(f"Sync Error: {error_msg[:50]}")
         self.sync_status_label.setText("Sync: Error")
+        self.sync_status_indicator.set_error(error_msg)
         logger.error(f"Sync error: {error_msg}")
+
+    def on_sync_error_manual(self, error_msg: str):
+        """Handle manual sync error."""
+        self.on_sync_error(error_msg)
+        if self.sync_progress_dialog:
+            self.sync_progress_dialog.sync_error(error_msg)
 
     def setup_sync_worker(self):
         """Setup background sync worker (only call after login)."""
         try:
             if self.sync_worker is None:
-                self.sync_worker = SyncWorker(self.api_client, self.db_manager)
+                # Read sync interval from settings (in minutes)
+                sync_interval_minutes = settings.SYNC_INTERVAL
+                sync_interval_seconds = max(60, sync_interval_minutes * 60)  # Minimum 60 seconds
+                
+                logger.info(f"Setting up sync worker with interval: {sync_interval_minutes} minutes")
+                
+                self.sync_worker = SyncWorker(
+                    self.api_client, 
+                    self.db_manager, 
+                    sync_interval=sync_interval_seconds
+                )
+                
+                # Connect signals
                 self.sync_worker.sync_started.connect(self.on_sync_started)
                 self.sync_worker.sync_completed.connect(self.on_sync_completed)
                 self.sync_worker.sync_error.connect(self.on_sync_error)
+                
+                # Start background sync thread
                 self.sync_worker.start()
+                logger.info("Sync worker started successfully")
+                
+                # Show initial status
+                self.sync_status_indicator.set_idle()
         except Exception as e:
             logger.warning(f"Failed to setup sync worker: {str(e)}")
+            self.sync_status_indicator.set_error("Failed to initialize sync")
 
     def logout(self):
         """Logout user and return to login screen."""

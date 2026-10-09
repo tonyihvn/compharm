@@ -94,6 +94,346 @@ class DatabaseManager:
             logger.error(f"Error resetting database: {e}")
             raise
 
+    # Sync-related methods
+    def add_or_update_client(self, client_data: dict) -> Client:
+        """Add or update a client in the database.
+        
+        Args:
+            client_data: Dictionary containing client information
+            
+        Returns:
+            The created or updated Client object
+        """
+        session = self.get_session()
+        try:
+            client_id = client_data.get('id')
+            
+            # Find existing client
+            existing = session.query(Client).filter_by(id=client_id).first()
+            
+            if existing:
+                # Update existing client
+                for key, value in client_data.items():
+                    if hasattr(existing, key):
+                        setattr(existing, key, value)
+                logger.debug(f"Updated client {client_id}")
+            else:
+                # Create new client
+                existing = Client(**client_data)
+                session.add(existing)
+                logger.debug(f"Created new client {client_id}")
+            
+            session.commit()
+            return existing
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error adding/updating client: {str(e)}")
+            raise
+        finally:
+            session.close()
+
+    def add_or_update_form(self, form_data: dict):
+        """Add or update a form in the database.
+        
+        Args:
+            form_data: Dictionary containing form information
+        """
+        session = self.get_session()
+        try:
+            # Import here to avoid circular imports
+            from .models import Form
+            
+            form_id = form_data.get('id')
+            
+            # Find existing form
+            existing = session.query(Form).filter_by(id=form_id).first()
+            
+            if existing:
+                # Update existing form
+                for key, value in form_data.items():
+                    if hasattr(existing, key):
+                        setattr(existing, key, value)
+                logger.debug(f"Updated form {form_id}")
+            else:
+                # Create new form
+                existing = Form(**form_data)
+                session.add(existing)
+                logger.debug(f"Created new form {form_id}")
+            
+            session.commit()
+            return existing
+        except Exception as e:
+            session.rollback()
+            logger.warning(f"Error adding/updating form: {str(e)}")
+            # Don't raise to allow sync to continue with other items
+            return None
+        finally:
+            session.close()
+
+    def get_pending_submissions(self) -> list:
+        """Get all pending form submissions.
+        
+        Returns:
+            List of pending submissions
+        """
+        session = self.get_session()
+        try:
+            # Import here to avoid circular imports
+            from .models import FormSubmission
+            
+            pending = session.query(FormSubmission).filter_by(
+                is_synced_to_server=False
+            ).all()
+            
+            # Convert to dictionaries
+            result = []
+            for submission in pending:
+                result.append({
+                    'id': submission.id,
+                    'form_id': submission.form_id,
+                    'client_id': submission.client_id,
+                    'data': submission.data,
+                    'created_at': submission.created_at
+                })
+            
+            logger.debug(f"Found {len(result)} pending submissions")
+            return result
+        except Exception as e:
+            logger.warning(f"Error getting pending submissions: {str(e)}")
+            return []
+        finally:
+            session.close()
+
+    def mark_submission_synced(self, submission_id: int) -> bool:
+        """Mark a submission as synced.
+        
+        Args:
+            submission_id: ID of the submission to mark as synced
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            # Import here to avoid circular imports
+            from .models import FormSubmission
+            from datetime import datetime
+            
+            submission = session.query(FormSubmission).filter_by(
+                id=submission_id
+            ).first()
+            
+            if submission:
+                submission.is_synced_to_server = True
+                submission.synced_at = datetime.utcnow()
+                submission.status = 'synced'
+                session.commit()
+                logger.debug(f"Marked submission {submission_id} as synced")
+                return True
+            else:
+                logger.warning(f"Submission {submission_id} not found")
+                return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error marking submission as synced: {str(e)}")
+            return False
+        finally:
+            session.close()
+
+    def store_form(self, form_id: str, form_name: str, form_definition: dict, version: str = '1.0', description: str = '') -> bool:
+        """Store a downloaded form in the local database.
+        
+        Args:
+            form_id: Unique form identifier
+            form_name: Display name of the form
+            form_definition: OpenMRS JSON form definition
+            version: Form version
+            description: Form description
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            from .models import Form
+            from datetime import datetime
+            
+            # Check if form already exists
+            existing = session.query(Form).filter_by(uuid=str(form_id)).first()
+            
+            if existing:
+                # Update existing form
+                existing.definition = form_definition
+                existing.version = version
+                existing.description = description
+                existing.updated_at = datetime.utcnow()
+                logger.debug(f"Updated form {form_id} in database")
+            else:
+                # Create new form
+                form = Form(
+                    name=form_name,
+                    uuid=str(form_id),
+                    version=version,
+                    definition=form_definition,
+                    description=description,
+                    is_published=True,
+                    uploaded_at=datetime.utcnow()
+                )
+                session.add(form)
+                logger.debug(f"Stored new form {form_id} in database")
+            
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error storing form: {str(e)}")
+            return False
+        finally:
+            session.close()
+
+    def get_all_forms(self) -> list:
+        """Get all stored forms from local database.
+        
+        Returns:
+            List of form dictionaries
+        """
+        session = self.get_session()
+        try:
+            from .models import Form
+            
+            forms = session.query(Form).filter_by(is_retired=False).all()
+            
+            result = []
+            for form in forms:
+                result.append({
+                    'id': form.id,
+                    'uuid': form.uuid,
+                    'name': form.name,
+                    'version': form.version,
+                    'description': form.description,
+                    'definition': form.definition,
+                    'is_published': form.is_published,
+                    'uploaded_at': form.uploaded_at.isoformat() if form.uploaded_at else None
+                })
+            
+            logger.debug(f"Retrieved {len(result)} forms from database")
+            return result
+        except Exception as e:
+            logger.warning(f"Error getting forms: {str(e)}")
+            return []
+        finally:
+            session.close()
+
+    def get_form_by_uuid(self, form_uuid: str) -> dict:
+        """Get a specific form by UUID.
+        
+        Args:
+            form_uuid: Form UUID
+            
+        Returns:
+            Form dictionary or None if not found
+        """
+        session = self.get_session()
+        try:
+            from .models import Form
+            
+            form = session.query(Form).filter_by(uuid=str(form_uuid)).first()
+            
+            if form:
+                return {
+                    'id': form.id,
+                    'uuid': form.uuid,
+                    'name': form.name,
+                    'version': form.version,
+                    'description': form.description,
+                    'definition': form.definition,
+                    'is_published': form.is_published,
+                    'uploaded_at': form.uploaded_at.isoformat() if form.uploaded_at else None
+                }
+            else:
+                logger.debug(f"Form {form_uuid} not found in database")
+                return None
+        except Exception as e:
+            logger.warning(f"Error getting form: {str(e)}")
+            return None
+        finally:
+            session.close()
+
+    def delete_form(self, form_uuid: str) -> bool:
+        """Delete a form from the local database.
+        
+        Args:
+            form_uuid: Form UUID
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            from .models import Form
+            
+            form = session.query(Form).filter_by(uuid=str(form_uuid)).first()
+            
+            if form:
+                # Soft delete by marking as retired
+                form.is_retired = True
+                session.commit()
+                logger.debug(f"Deleted form {form_uuid}")
+                return True
+            else:
+                logger.warning(f"Form {form_uuid} not found")
+                return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error deleting form: {str(e)}")
+            return False
+        finally:
+            session.close()
+
+    def add_form_submission(self, form_uuid: str, client_id: int, submission_data: dict, user_id: int = None) -> int:
+        """Add a form submission to the database.
+        
+        Args:
+            form_uuid: Form UUID
+            client_id: Client ID
+            submission_data: Filled form data
+            user_id: User who filled the form
+            
+        Returns:
+            Submission ID or None if failed
+        """
+        session = self.get_session()
+        try:
+            from .models import Form, FormSubmission
+            from datetime import datetime
+            
+            # Get form by UUID
+            form = session.query(Form).filter_by(uuid=str(form_uuid)).first()
+            if not form:
+                logger.warning(f"Form {form_uuid} not found")
+                return None
+            
+            # Create submission
+            submission = FormSubmission(
+                form_id=form.id,
+                client_id=client_id,
+                filled_by_user_id=user_id,
+                data=submission_data,
+                status='draft',
+                is_synced_to_server=False
+            )
+            session.add(submission)
+            session.commit()
+            
+            logger.debug(f"Created form submission {submission.id}")
+            return submission.id
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error adding form submission: {str(e)}")
+            return None
+        finally:
+            session.close()
+
 
 # Global database manager instance
 db_manager = DatabaseManager()

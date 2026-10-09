@@ -66,8 +66,8 @@ class MainWindow(QMainWindow):
         self.client_detail_view = ClientDetailView({"fullName": "Select a client"})
         # Create placeholder form viewer (will be updated when form is selected)
         self.form_viewer = FormViewer({"name": "Select a form"}, {}, self.settings.CENTRAL_SERVER_URL)
-        # Create admin panel
-        self.admin_panel = AdminPanel(self.settings.CENTRAL_SERVER_URL, self.current_user)
+        # Create admin panel with db_manager
+        self.admin_panel = AdminPanel(self.settings.CENTRAL_SERVER_URL, self.current_user, self.db_manager)
 
         # Add views to stacked widget
         self.stacked_widget.addWidget(self.client_list_view)      # Index 0

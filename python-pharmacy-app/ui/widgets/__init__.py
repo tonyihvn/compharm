@@ -2,9 +2,11 @@
 
 from ..clients_view import ClientsListView
 from ..client_details_view import ClientDetailsView
+from ..client_full_details_view import ClientDetailsView as EnhancedClientDetailsView
 from ..form_view import FormView
 from ..admin_panel import AdminPanel
 from .sync_worker import SyncWorker
+from .enhanced_client_list import EnhancedClientListView
 
 # Compatibility aliases
 ClientListView = ClientsListView
@@ -16,6 +18,8 @@ __all__ = [
     'ClientsListView',
     'ClientDetailView',
     'ClientDetailsView',
+    'EnhancedClientDetailsView',
+    'EnhancedClientListView',
     'FormViewer',
     'FormView',
     'AdminPanel',

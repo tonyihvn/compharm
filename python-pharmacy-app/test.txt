@@ -1,0 +1,1 @@
+password=settings.SUPER_USER_PASSWORD
